@@ -423,6 +423,39 @@
                     <span>🎯 命中率: <span id="aiHitRate">--</span>%</span>
                 </div>
                 
+                <div class="ai-threshold-config" style="background:#161b22;border-radius:4px;padding:10px;margin-bottom:10px;">
+                    <div style="font-size:11px;font-weight:bold;color:#8957e5;margin-bottom:8px;">⚙️ 评分阈值配置</div>
+                    <div style="display:flex;gap:15px;flex-wrap:wrap;">
+                        <div style="display:flex;align-items:center;gap:5px;">
+                            <label style="font-size:10px;color:#8b949e;">第一轮:</label>
+                            <input type="number" id="aiThresholdRound1" min="0" max="100" value="60" style="width:50px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
+                            <span style="font-size:10px;color:#8b949e;">分</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:5px;">
+                            <label style="font-size:10px;color:#8b949e;">第二轮:</label>
+                            <input type="number" id="aiThresholdRound2" min="0" max="100" value="60" style="width:50px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
+                            <span style="font-size:10px;color:#8b949e;">分</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:5px;">
+                            <label style="font-size:10px;color:#8b949e;">最大重试:</label>
+                            <input type="number" id="aiMaxRetries" min="1" max="100" value="50" style="width:45px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
+                            <span style="font-size:10px;color:#8b949e;">次</span>
+                        </div>
+                    </div>
+                    <div style="font-size:9px;color:#8b949e;margin-top:5px;">💡 分割结果评分低于阈值时自动重试，直到满足条件</div>
+                </div>
+                
+                <div class="ai-threshold-config" style="background:#161b22;border-radius:4px;padding:10px;margin-bottom:10px;">
+                    <div style="font-size:11px;font-weight:bold;color:#8957e5;margin-bottom:8px;">📦 模式库管理</div>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <button class="btn btn-green" onclick="exportPatterns()" style="padding:5px 12px;font-size:11px;">📤 导出模式库</button>
+                        <button class="btn btn-gray" onclick="document.getElementById('importPatternsInput').click()" style="padding:5px 12px;font-size:11px;">📥 导入模式库</button>
+                        <button class="btn btn-red" onclick="clearPatterns()" style="padding:5px 12px;font-size:11px;">🗑️ 清空模式库</button>
+                        <input type="file" id="importPatternsInput" accept=".json" style="display:none;" onchange="importPatterns(this)">
+                    </div>
+                    <div style="font-size:9px;color:#8b949e;margin-top:5px;">💡 导出为JSON文件，方便跨设备迁移；导入时会合并现有数据</div>
+                </div>
+                
                 <div id="aiResult" style="display:none;">
                     <div class="ai-header">
                         <span class="ai-title">AI分析报告</span>
@@ -4145,13 +4178,50 @@
         var aiDB = null;
         var aiDataLake = [];
         var aiPatterns = [];
+        var patternDB = null;
         
         function initAIDatabase() {
             return new Promise(function(resolve) {
                 loadDataLake();
-                loadPatterns();
-                console.log('[AI] Database initialized - Data Lake:', aiDataLake.length, 'Patterns:', aiPatterns.length);
-                resolve();
+                initPatternDB().then(function() {
+                    loadPatterns().then(function() {
+                        console.log('[AI] Database initialized - Data Lake:', aiDataLake.length, 'Patterns:', aiPatterns.length);
+                        resolve();
+                    });
+                }).catch(function() {
+                    console.log('[AI] IndexedDB not supported, falling back to localStorage');
+                    loadPatterns();
+                    resolve();
+                });
+            });
+        }
+        
+        function initPatternDB() {
+            return new Promise(function(resolve, reject) {
+                if (!window.indexedDB) {
+                    reject('IndexedDB not supported');
+                    return;
+                }
+                
+                var request = indexedDB.open('lotteryPatternDB', 1);
+                
+                request.onupgradeneeded = function(e) {
+                    var db = e.target.result;
+                    if (!db.objectStoreNames.contains('patterns')) {
+                        var store = db.createObjectStore('patterns', { keyPath: 'id' });
+                        store.createIndex('score', 'score', { unique: false });
+                        store.createIndex('timestamp', 'timestamp', { unique: false });
+                    }
+                };
+                
+                request.onsuccess = function(e) {
+                    patternDB = e.target.result;
+                    resolve();
+                };
+                
+                request.onerror = function(e) {
+                    reject(e.target.error);
+                };
             });
         }
         
@@ -4176,22 +4246,59 @@
         }
         
         function loadPatterns() {
-            try {
-                var saved = localStorage.getItem('lotteryPatterns');
-                if (saved) {
-                    aiPatterns = JSON.parse(saved);
+            return new Promise(function(resolve) {
+                if (patternDB) {
+                    var transaction = patternDB.transaction(['patterns'], 'readonly');
+                    var store = transaction.objectStore('patterns');
+                    var request = store.getAll();
+                    
+                    request.onsuccess = function(e) {
+                        aiPatterns = e.target.result || [];
+                        console.log('[AI] Loaded', aiPatterns.length, 'patterns from IndexedDB');
+                        resolve();
+                    };
+                    
+                    request.onerror = function() {
+                        console.error('[AI] Failed to load patterns from IndexedDB');
+                        aiPatterns = [];
+                        resolve();
+                    };
+                } else {
+                    try {
+                        var saved = localStorage.getItem('lotteryPatterns');
+                        if (saved) {
+                            aiPatterns = JSON.parse(saved);
+                        }
+                    } catch (e) {
+                        console.error('[AI] Failed to load Patterns:', e);
+                        aiPatterns = [];
+                    }
+                    resolve();
                 }
-            } catch (e) {
-                console.error('[AI] Failed to load Patterns:', e);
-                aiPatterns = [];
-            }
+            });
         }
         
         function savePatterns() {
-            try {
-                localStorage.setItem('lotteryPatterns', JSON.stringify(aiPatterns));
-            } catch (e) {
-                console.error('[AI] Failed to save Patterns:', e);
+            if (patternDB) {
+                var transaction = patternDB.transaction(['patterns'], 'readwrite');
+                var store = transaction.objectStore('patterns');
+                
+                var clearReq = store.clear();
+                clearReq.onsuccess = function() {
+                    aiPatterns.forEach(function(pattern) {
+                        store.put(pattern);
+                    });
+                };
+                
+                clearReq.onerror = function() {
+                    console.error('[AI] Failed to clear patterns');
+                };
+            } else {
+                try {
+                    localStorage.setItem('lotteryPatterns', JSON.stringify(aiPatterns));
+                } catch (e) {
+                    console.error('[AI] Failed to save Patterns:', e);
+                }
             }
         }
         
@@ -4478,15 +4585,91 @@
         function savePatternToDB(pattern) {
             return new Promise(function(resolve) {
                 pattern.id = Date.now() + Math.random();
+                pattern.timestamp = Date.now();
                 aiPatterns.push(pattern);
-                
-                if (aiPatterns.length > 1000) {
-                    aiPatterns = aiPatterns.slice(-1000);
-                }
-                
                 savePatterns();
                 resolve();
             });
+        }
+        
+        function exportPatterns() {
+            if (aiPatterns.length === 0) {
+                alert('模式库为空，无需导出');
+                return;
+            }
+            
+            var data = {
+                version: '1.0',
+                exportTime: new Date().toISOString(),
+                patterns: aiPatterns,
+                count: aiPatterns.length
+            };
+            
+            var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'lottery_patterns_' + new Date().toISOString().slice(0, 10) + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            console.log('[AI] Exported', aiPatterns.length, 'patterns');
+        }
+        
+        function importPatterns(input) {
+            var file = input.files[0];
+            if (!file) return;
+            
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var data = JSON.parse(e.target.result);
+                    var newPatterns = data.patterns || data;
+                    
+                    if (!Array.isArray(newPatterns)) {
+                        alert('导入文件格式不正确');
+                        return;
+                    }
+                    
+                    var importedCount = 0;
+                    newPatterns.forEach(function(pattern) {
+                        pattern.id = Date.now() + Math.random();
+                        pattern.timestamp = Date.now();
+                        aiPatterns.push(pattern);
+                        importedCount++;
+                    });
+                    
+                    savePatterns();
+                    updateAIStatsUI();
+                    
+                    alert('成功导入 ' + importedCount + ' 个模式，当前模式库共 ' + aiPatterns.length + ' 个');
+                    console.log('[AI] Imported', importedCount, 'patterns');
+                } catch (e) {
+                    alert('导入失败：' + e.message);
+                }
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
+        
+        function clearPatterns() {
+            if (aiPatterns.length === 0) {
+                alert('模式库已经为空');
+                return;
+            }
+            
+            if (!confirm('确定要清空模式库吗？此操作不可恢复！')) {
+                return;
+            }
+            
+            aiPatterns = [];
+            savePatterns();
+            updateAIStatsUI();
+            
+            alert('模式库已清空');
+            console.log('[AI] Pattern library cleared');
         }
         
         function getAllPatternsFromDB() {
@@ -5061,9 +5244,16 @@
         
         function runAIAnalysis() {
             console.log('[AI] runAIAnalysis called');
-            console.log('[AI] currentMode:', currentMode);
-            console.log('[AI] window.splitResults:', window.splitResults ? 'exists, length=' + window.splitResults.length : 'undefined');
-            console.log('[AI] drawData.length:', drawData.length);
+            
+            var thresholdRound1 = parseInt(document.getElementById('aiThresholdRound1').value) || 60;
+            var thresholdRound2 = parseInt(document.getElementById('aiThresholdRound2').value) || 60;
+            var maxRetries = parseInt(document.getElementById('aiMaxRetries').value) || 50;
+            
+            analyzeWithThreshold(thresholdRound1, thresholdRound2, maxRetries, 0);
+        }
+        
+        function analyzeWithThreshold(threshold1, threshold2, maxRetries, retryCount) {
+            console.log('[AI] analyzeWithThreshold called, retry:', retryCount, 'thresholds:', threshold1, '/', threshold2);
             
             var aiResultEl = document.getElementById('aiResult');
             var aiNoDataEl = document.getElementById('aiNoData');
@@ -5071,34 +5261,94 @@
             var aiRecommendationsEl = document.getElementById('aiRecommendations');
             var aiAnalysisTimeEl = document.getElementById('aiAnalysisTime');
             
-            console.log('[AI] Elements found:', {
-                aiResultEl: !!aiResultEl,
-                aiNoDataEl: !!aiNoDataEl,
-                aiSummaryEl: !!aiSummaryEl,
-                aiRecommendationsEl: !!aiRecommendationsEl,
-                aiAnalysisTimeEl: !!aiAnalysisTimeEl
-            });
-            
             if (currentMode !== 'split' || !window.splitResults || window.splitResults.length === 0) {
-                console.log('[AI] No split data, showing no data message');
                 if (aiResultEl) aiResultEl.style.display = 'none';
                 if (aiNoDataEl) aiNoDataEl.style.display = 'block';
                 return;
             }
             
-            aiNoDataEl.style.display = 'none';
-            aiResultEl.style.display = 'block';
-            
-            aiAnalysisTimeEl.textContent = '分析时间: ' + new Date().toLocaleString();
-            
             var results = analyzeSplitResults(window.splitResults);
             
-            var summaryHtml = '<p>📊 <strong>分析概况</strong>: 共分析 ' + results.allGroups.length + ' 组号码，';
-            summaryHtml += '推荐 ' + results.recommendations.length + ' 组关注。</p>';
-            summaryHtml += '<p>📈 <strong>数据周期</strong>: 最近 ' + drawData.length + ' 期开奖数据</p>';
-            summaryHtml += '<p>🎯 <strong>命中率预期</strong>: 推荐组平均命中率 ' + results.avgHitRate.toFixed(2) + '%</p>';
+            var bestScore = results.recommendations.length > 0 ? results.recommendations[0].score : 0;
+            var round1Pass = results.recommendations.length > 0 && results.recommendations[0].score >= threshold1;
+            var round2Pass = window.splitResults.length >= 2 && results.recommendations.length > 0 && 
+                              results.recommendations[0].score >= threshold2;
             
-            aiSummaryEl.innerHTML = summaryHtml;
+            if (round1Pass && (window.splitResults.length < 2 || round2Pass)) {
+                aiNoDataEl.style.display = 'none';
+                aiResultEl.style.display = 'block';
+                aiAnalysisTimeEl.textContent = '分析时间: ' + new Date().toLocaleString();
+                
+                var summaryHtml = '<p>📊 <strong>分析概况</strong>: 共分析 ' + results.allGroups.length + ' 组号码，';
+                summaryHtml += '推荐 ' + results.recommendations.length + ' 组关注。</p>';
+                summaryHtml += '<p>📈 <strong>数据周期</strong>: 最近 ' + drawData.length + ' 期开奖数据</p>';
+                summaryHtml += '<p>🎯 <strong>命中率预期</strong>: 推荐组平均命中率 ' + results.avgHitRate.toFixed(2) + '%</p>';
+                if (retryCount > 0) {
+                    summaryHtml += '<p>🔄 <strong>重试次数</strong>: ' + retryCount + ' 次</p>';
+                }
+                
+                aiSummaryEl.innerHTML = summaryHtml;
+                
+                renderRecommendations(results);
+                
+                aiAnalysisHistory.push({
+                    time: new Date().toISOString(),
+                    recommendations: results.recommendations,
+                    totalGroups: results.allGroups.length,
+                    dataPeriods: drawData.length
+                });
+                
+                if (aiAnalysisHistory.length > 100) {
+                    aiAnalysisHistory = aiAnalysisHistory.slice(-100);
+                }
+                
+                saveAIAnalysisHistory();
+                
+                return;
+            }
+            
+            if (retryCount >= maxRetries) {
+                aiNoDataEl.style.display = 'none';
+                aiResultEl.style.display = 'block';
+                aiAnalysisTimeEl.textContent = '分析时间: ' + new Date().toLocaleString();
+                aiSummaryEl.innerHTML = '<p style="color:#f0883e;">⚠️ 已达到最大重试次数 (' + maxRetries + '次)，当前最佳评分: ' + bestScore + '分</p>' +
+                                        '<p style="font-size:11px;color:#8b949e;">建议降低评分阈值或检查数据质量</p>';
+                
+                var fallbackResults = analyzeSplitResults(window.splitResults);
+                renderRecommendations(fallbackResults);
+                return;
+            }
+            
+            if (aiResultEl) aiResultEl.style.display = 'block';
+            aiNoDataEl.style.display = 'none';
+            aiAnalysisTimeEl.textContent = '分析时间: ' + new Date().toLocaleString();
+            aiSummaryEl.innerHTML = '<p style="color:#58a6ff;">🔄 正在重试分割... (第 ' + (retryCount + 1) + ' 次，当前最佳: ' + bestScore + '分，目标: ' + 
+                                     (window.splitResults.length >= 2 ? threshold2 : threshold1) + '分)</p>';
+            aiRecommendationsEl.innerHTML = '<div style="text-align:center;padding:20px;color:#8b949e;"><div class="retry-status" style="justify-content:center;"><div class="retry-dot"></div><span>重新分割中...</span></div></div>';
+            
+            setTimeout(function() {
+                if (window.splitResults.length < 2) {
+                    var newSplitResults = [];
+                    executeSplit(newSplitResults, null, 1);
+                } else {
+                    var bestGroup = results.recommendations.length > 0 ? results.recommendations[0].group : null;
+                    if (bestGroup) {
+                        window.splitResults.splice(1, window.splitResults.length - 1);
+                        executeSplit(window.splitResults, bestGroup, 2);
+                    } else {
+                        var newSplitResults = [];
+                        executeSplit(newSplitResults, null, 1);
+                    }
+                }
+                
+                setTimeout(function() {
+                    analyzeWithThreshold(threshold1, threshold2, maxRetries, retryCount + 1);
+                }, 500);
+            }, 100);
+        }
+        
+        function renderRecommendations(results) {
+            var aiRecommendationsEl = document.getElementById('aiRecommendations');
             
             var recHtml = '';
             for (var i = 0; i < results.recommendations.length; i++) {
@@ -5158,19 +5408,6 @@
             }
             
             aiRecommendationsEl.innerHTML = recHtml || '<p style="text-align:center;color:#8b949e;">暂无符合条件的推荐</p>';
-            
-            aiAnalysisHistory.push({
-                time: new Date().toISOString(),
-                recommendations: results.recommendations,
-                totalGroups: results.allGroups.length,
-                dataPeriods: drawData.length
-            });
-            
-            if (aiAnalysisHistory.length > 100) {
-                aiAnalysisHistory = aiAnalysisHistory.slice(-100);
-            }
-            
-            saveAIAnalysisHistory();
         }
         
         function clearAIResults() {
