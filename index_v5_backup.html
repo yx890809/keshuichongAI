@@ -1,0 +1,4355 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>瞌睡虫V5趋势分析软件</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin:0; padding:0; font-family:Arial; background:#0d1117; color:#c9d1d9; }
+        .header { background:#161b22; padding:15px; text-align:center; border-bottom:1px solid #30363d; }
+        .main { display:flex; height:calc(100vh - 58px); }
+        .left { width:350px; background:#21262d; padding:12px; overflow-y:auto; }
+        .right { flex:1; background:#161b22; padding:10px; overflow-y:auto; display:flex; flex-direction:column; }
+        .box { background:#161b22; border-radius:8px; padding:10px; margin-bottom:12px; border:1px solid #30363d; }
+        .title { font-weight:bold; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #30363d; }
+        textarea { width:100%; height:70px; padding:6px; background:#0d1117; border:1px solid #30363d; border-radius:4px; color:#c9d1d9; font-size:11px; font-family:monospace; resize:vertical; }
+        .btn { padding:7px 12px; border:none; border-radius:4px; font-size:12px; cursor:pointer; }
+        .btn-blue { background:#58a6ff; color:#0d1117; font-weight:bold; }
+        .btn-gray { background:#30363d; color:#c9d1d9; }
+        .btn-gray:hover { background:#3d4450; }
+        .btn-small { padding:4px 10px; font-size:11px; }
+        .btn-green { background:#238636; color:#fff; }
+        .btn-orange { background:#db6d28; color:#fff; }
+        .btn-purple { background:#8957e5; color:#fff; }
+        .btn-yellow { background:#d29922; color:#0d1117; font-weight:bold; }
+        .btn-row { display:flex; gap:6px; margin-top:8px; }
+        .btn-row .btn { flex:1; }
+        .pos-btns { display:flex; gap:4px; margin-bottom:12px; }
+        .pos-btn { flex:1; padding:8px; background:#30363d; border:none; border-radius:4px; color:#c9d1d9; cursor:pointer; }
+        .pos-btn.active { background:#58a6ff; color:#0d1117; }
+        .golden-btns { display:flex; flex-wrap:wrap; gap:4px; }
+        .golden-btn { width:calc(25% - 4px); padding:8px 4px; background:#30363d; border:none; border-radius:4px; color:#c9d1d9; cursor:pointer; font-size:11px; }
+        .golden-btn.active { background:#f0883e; }
+        .groups-list { max-height:180px; overflow-y:auto; }
+        .group-item { background:#0d1117; border-radius:4px; padding:6px; margin-bottom:6px; }
+        .group-header { display:flex; justify-content:space-between; margin-bottom:4px; }
+        .group-name { font-weight:bold; font-size:12px; }
+        .group-info { font-size:10px; color:#58a6ff; }
+        .group-nums { font-size:11px; color:#8b949e; font-family:monospace; max-height:40px; overflow-y:auto; white-space:pre-wrap; }
+        .copy-btn { float:right; padding:2px 5px; background:#30363d; border:none; border-radius:3px; color:#c9d1d9; font-size:10px; cursor:pointer; }
+        .charts-container { flex:1; overflow-y:auto; padding:5px; }
+        .charts-grid { display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-start; align-content:flex-start; }
+        .chart-box { background:#21262d; border-radius:8px; padding:10px; border:1px solid #30363d; cursor:pointer; width:220px; transition:all 0.2s; }
+        .chart-box:hover { border-color:#58a6ff; transform:scale(1.02); }
+        .chart-title { font-size:12px; font-weight:bold; margin-bottom:5px; color:#fff; }
+        .chart-hit { font-size:10px; color:#58a6ff; margin-bottom:5px; }
+        .chart-canvas { width:200px; height:130px; background:#0d1117; border-radius:4px; display:block; }
+        .status-bar { background:#161b22; padding:8px; text-align:center; font-size:11px; color:#8b949e; border-top:1px solid #30363d; }
+        .badge { font-size:9px; padding:1px 4px; background:#f0883e; border-radius:8px; margin-left:4px; }
+        
+        /* 神按钮样式 - 圆形花哨效果 */
+        .btn-god {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            background-size: 400% 400%;
+            border: none;
+            cursor: pointer;
+            animation: godGlow 2s ease infinite, godGradient 3s ease infinite;
+            box-shadow: 
+                0 0 10px rgba(255, 107, 107, 0.5),
+                0 0 20px rgba(254, 202, 87, 0.4),
+                0 0 30px rgba(72, 219, 251, 0.3);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-god:hover {
+            transform: scale(1.1);
+            box-shadow: 
+                0 0 15px rgba(255, 107, 107, 0.7),
+                0 0 30px rgba(254, 202, 87, 0.5),
+                0 0 50px rgba(72, 219, 251, 0.4);
+        }
+        
+        .btn-god:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-god::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            background-size: 400% 400%;
+            border-radius: 50%;
+            z-index: -1;
+            filter: blur(8px);
+            animation: godGradient 3s ease infinite;
+        }
+        
+        @keyframes godGlow {
+            0%, 100% {
+                box-shadow: 
+                    0 0 10px rgba(255, 107, 107, 0.5),
+                    0 0 20px rgba(254, 202, 87, 0.4),
+                    0 0 30px rgba(72, 219, 251, 0.3);
+            }
+            50% {
+                box-shadow: 
+                    0 0 20px rgba(255, 107, 107, 0.7),
+                    0 0 40px rgba(254, 202, 87, 0.6),
+                    0 0 60px rgba(72, 219, 251, 0.5);
+            }
+        }
+        
+        @keyframes godGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 模态框样式 */
+        .modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); z-index:1000; justify-content:center; align-items:center; }
+        .modal.show { display:flex; }
+        .modal-content { width:95%; max-width:1400px; height:85%; background:#0d1117; border-radius:8px; border:1px solid #21262d; display:flex; flex-direction:column; }
+        .modal-header { padding:10px 15px; border-bottom:1px solid #21262d; display:flex; justify-content:space-between; align-items:center; background:#161b22; }
+        .modal-title { font-size:14px; font-weight:bold; color:#c9d1d9; }
+        .modal-close { padding:5px 14px; background:#f85149; border:none; border-radius:4px; color:#fff; cursor:pointer; font-size:12px; }
+        .modal-body { flex:1; padding:10px; }
+        .big-canvas { width:100%; height:100%; background:#0d1117; border-radius:6px; }
+        .modal-info { padding:10px 15px; border-top:1px solid #21262d; display:flex; gap:25px; font-size:11px; background:#161b22; align-items:center; }
+        .modal-actions { margin-left:auto; display:flex; gap:8px; }
+        .modal-actions .btn { padding:6px 14px; font-size:11px; }
+        .info-item { display:flex; gap:6px; }
+        .info-label { color:#8b949e; }
+        .info-value { color:#58a6ff; font-weight:bold; }
+        
+        /* K线编辑器样式 */
+        .editor-box { background:#161b22; border-radius:8px; padding:10px; margin-bottom:12px; border:1px solid #30363d; }
+        .editor-title { font-weight:bold; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #30363d; display:flex; justify-content:space-between; align-items:center; }
+        .editor-canvas { width:100%; height:100px; background:#000; border-radius:4px; display:block; cursor:crosshair; }
+        .editor-input { width:100%; height:50px; padding:6px; background:#0d1117; border:1px solid #30363d; border-radius:4px; color:#c9d1d9; font-size:11px; font-family:monospace; resize:none; margin:8px 0; }
+        .editor-hint { font-size:9px; color:#8b949e; margin-bottom:6px; }
+        .trend-list { max-height:120px; overflow-y:auto; margin-top:8px; }
+        .trend-item { background:#0d1117; border-radius:4px; padding:6px; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; }
+        .trend-name { font-size:11px; color:#c9d1d9; cursor:pointer; }
+        .trend-name:hover { color:#58a6ff; }
+        .trend-name.selected { color:#58a6ff; font-weight:bold; }
+        .trend-del { padding:2px 6px; background:#f85149; border:none; border-radius:3px; color:#fff; font-size:10px; cursor:pointer; }
+        .trend-preview { width:60px; height:30px; background:#000; border-radius:2px; margin-right:8px; }
+        .auto-section { margin-top:10px; padding-top:10px; border-top:1px solid #30363d; }
+        .auto-title { font-weight:bold; margin-bottom:8px; color:#f0883e; }
+        
+        /* 最新开奖区域 */
+        .latest-lottery { padding:12px; }
+        .lottery-header { margin-bottom:10px; }
+        .lottery-label { font-weight:bold; color:#58a6ff; font-size:13px; }
+        .lottery-info { background:#0d1117; border-radius:6px; padding:12px; }
+        .lottery-period { font-size:14px; font-weight:bold; color:#c9d1d9; font-family:monospace; margin-bottom:8px; }
+        .lottery-numbers { margin-bottom:8px; }
+        .numbers-label { font-size:12px; color:#8b949e; margin-bottom:6px; display:block; }
+        .numbers-container { display:flex; gap:6px; flex-wrap:wrap; }
+        .number-box { 
+            width:32px; 
+            height:32px; 
+            display:flex; 
+            align-items:center; 
+            justify-content:center; 
+            background:linear-gradient(135deg, #30363d, #161b22); 
+            border:1px solid #30363d; 
+            border-radius:6px; 
+            font-family:monospace; 
+            font-size:16px; 
+            font-weight:bold; 
+            color:#58a6ff;
+            box-shadow:0 2px 4px rgba(0,0,0,0.3);
+        }
+        .lottery-time { font-size:11px; color:#6e7681; text-align:right; }
+        
+        .split-config { margin-bottom:8px; }
+        .config-row { display:flex; align-items:center; margin-bottom:6px; gap:8px; }
+        .config-label { font-size:11px; color:#8b949e; width:80px; }
+        .config-select { flex:1; padding:6px; background:#0d1117; border:1px solid #30363d; border-radius:4px; color:#c9d1d9; font-size:11px; }
+        .config-trend { flex:1; padding:6px; background:#0d1117; border:1px solid #30363d; border-radius:4px; color:#58a6ff; font-size:11px; }
+        .result-final { background:#0d1117; border-radius:4px; padding:10px; margin-top:10px; border:1px solid #238636; }
+        .result-title { color:#238636; font-weight:bold; margin-bottom:6px; }
+        .result-nums { font-family:monospace; font-size:12px; color:#c9d1d9; word-break:break-all; }
+        .sim-score { color:#58a6ff; font-size:10px; margin-top:4px; }
+        
+        /* 分割设置弹窗 */
+        .split-modal { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:2000; justify-content:center; align-items:center; }
+        .split-modal.show { display:flex; }
+        .split-modal-content { width:90%; max-width:600px; background:#21262d; border-radius:8px; padding:20px; border:1px solid #30363d; }
+        .split-modal-title { font-size:16px; font-weight:bold; margin-bottom:15px; color:#fff; }
+        .split-row { display:flex; align-items:center; margin-bottom:12px; gap:10px; background:#161b22; padding:10px; border-radius:6px; }
+        .split-num { font-weight:bold; color:#58a6ff; width:80px; }
+        .split-selects { flex:1; display:flex; gap:8px; }
+        .split-info { font-size:10px; color:#8b949e; }
+        
+        /* 相似度配置样式 */
+        .similarity-presets { display:flex; gap:4px; flex-wrap:wrap; }
+        .preset-btn { padding:4px 8px; background:#30363d; border:none; border-radius:4px; color:#c9d1d9; font-size:11px; cursor:pointer; transition:all 0.2s; }
+        .preset-btn:hover { background:#3d4450; }
+        .preset-btn.preset-active { background:#58a6ff; color:#0d1117; font-weight:bold; }
+        .similarity-input { width:70px; padding:4px 6px; background:#0d1117; border:1px solid #30363d; border-radius:4px; color:#c9d1d9; font-size:11px; text-align:center; }
+        
+        /* 重试状态动画 */
+        .retry-status { display:flex; align-items:center; gap:8px; }
+        .retry-dot { width:8px; height:8px; border-radius:50%; background:#f0883e; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(1.2); } }
+        .retry-count { color:#f0883e; font-weight:bold; }
+        
+        /* 每行相似度配置 */
+        .similarity-config { display:flex; align-items:center; gap:4px; }
+        .similarity-select { padding:4px 6px; background:#0d1117; border:1px solid #30363d; border-radius:4px; color:#c9d1d9; font-size:10px; }
+        .similarity-input-small { width:55px; padding:4px; background:#0d1117; border:1px solid #30363d; border-radius:4px; color:#c9d1d9; font-size:10px; text-align:center; }
+        .similarity-input-small:disabled { opacity:0.5; }
+    </style>
+</head>
+<body>
+    <div class="header"><h2>瞌睡虫V5趋势分析软件</h2></div>
+    <div class="main">
+        <div class="left">
+            <div class="box">
+                <div class="title">开奖数据 <span class="badge" id="drawCount">0期</span> <button class="btn btn-red btn-small" onclick="clearDrawData()">清空数据</button></div>
+                <div id="currentDrawDisplay" style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;text-align:center;">
+                    <div style="font-size:10px;color:#8b949e;margin-bottom:4px;">最新开奖号码</div>
+                    <div id="currentDrawNumber" style="font-size:24px;font-weight:bold;color:#58a6ff;font-family:monospace;">--</div>
+                    <div id="currentDrawPeriod" style="font-size:10px;color:#8b949e;margin-top:4px;">等待数据...</div>
+                </div>
+                <textarea id="drawInput" readonly style="height:130px;"></textarea>
+                <div style="margin-top:8px;">
+                    <input type="text" id="manualInput" placeholder="输入格式: 20260620-0173 12345" style="width:100%;padding:6px;margin-bottom:6px;background:#0d1117;border:1px solid #30363d;border-radius:4px;color:#c9d1d9;font-size:12px;">
+                    <div class="btn-row">
+                        <button class="btn btn-blue" onclick="addManualData()">添加</button>
+                        <button class="btn btn-green" onclick="importDrawDataFile()">导入文件</button>
+                    </div>
+                    <div class="btn-row" style="margin-top:6px;">
+                        <button class="btn btn-orange" onclick="pasteWebData()">粘贴网页数据</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 外部数据接入 -->
+            <div class="box">
+                <div class="title">外部数据接入</div>
+                <input type="text" id="apiUrl" value="http://vip.lkag3.com/K26a35690c17177/p/10.json" style="width:100%;padding:6px;margin-bottom:8px;background:#0d1117;border:1px solid #30363d;border-radius:4px;color:#c9d1d9;font-size:11px;">
+                <div style="font-size:10px;color:#8b949e;margin-bottom:6px;">可用API: <span style="color:#58a6ff;">JSON格式</span> 或 <span style="color:#f0883e;">XML格式(.xml)</span></div>
+                <div class="btn-row">
+                    <button class="btn btn-blue" onclick="fetchExternalData()">获取数据</button>
+                    <button class="btn btn-green" onclick="startAutoRefresh()">开启自动刷新</button>
+                    <button class="btn btn-gray" onclick="stopAutoRefresh()">停止刷新</button>
+                </div>
+                <div class="btn-row" style="margin-top:8px;">
+                    <button class="btn btn-orange" onclick="exportData()">导出数据</button>
+                    <button class="btn btn-purple" onclick="importData()">导入数据</button>
+                </div>
+                <div id="apiStatus" style="font-size:10px;color:#8b949e;margin-top:8px;"></div>
+                <div id="refreshStatus" style="font-size:10px;color:#8b949e;margin-top:4px;"></div>
+                <div id="dataStatus" style="font-size:10px;color:#58a6ff;margin-top:4px;"></div>
+            </div>
+
+            <div class="box">
+                <div class="title">定位选择</div>
+                <div class="pos-btns">
+                    <button class="pos-btn" onclick="setPos('front')">前三</button>
+                    <button class="pos-btn" onclick="setPos('middle')">中三</button>
+                    <button class="pos-btn active" onclick="setPos('back')">后三</button>
+                </div>
+            </div>
+
+            <div class="box">
+                <div class="title">黄金分割</div>
+                <div class="golden-btns">
+                    <button class="golden-btn" onclick="generateGroups(3)">3中2</button>
+                    <button class="golden-btn" onclick="generateGroups(4)">4中3</button>
+                    <button class="golden-btn" onclick="generateGroups(5)">5中4</button>
+                    <button class="golden-btn" onclick="generateGroups(6)">6中5</button>
+                    <button class="golden-btn" onclick="generateGroups(7)">7中6</button>
+                    <button class="golden-btn" onclick="generateGroups(8)">8中7</button>
+                    <button class="golden-btn" onclick="generateGroups(9)">9中8</button>
+                    <button class="golden-btn" onclick="generateGroups(10)">10中9</button>
+                </div>
+            </div>
+
+            <div class="box">
+                <div class="title">指定大底</div>
+                <textarea id="baseInput"></textarea>
+                <div class="btn-row">
+                    <button class="btn btn-gray" onclick="clearBase()">清空</button>
+                    <button class="btn btn-green" onclick="pasteToBase()">粘贴</button>
+                    <button class="btn btn-orange" onclick="showBaseTrend()">查看趋势图</button>
+                    <button class="btn btn-blue" onclick="applyBase()">使用大底</button>
+                </div>
+            </div>
+
+            <div class="box">
+                <div class="title">生成结果</div>
+                <div class="groups-list" id="groupsList">点击按钮生成分组</div>
+            </div>
+
+            <!-- K线编辑器 -->
+            <div class="editor-box">
+                    <div class="editor-title">
+                        <span>K线编辑器</span>
+                        <span style="font-size:10px;color:#8b949e;">(1=中, 0=未中)</span>
+                    </div>
+                    <canvas id="editorCanvas" class="editor-canvas"></canvas>
+                    <div class="editor-hint">提示：输入010101010...或在上方画线，1表示命中，0表示未命中</div>
+                    <textarea id="editorInput" class="editor-input" placeholder="输入010101...格式数据，1=中，0=未中" oninput="onEditorInput()"></textarea>
+                <div class="btn-row">
+                    <button class="btn btn-gray" onclick="clearEditor()">清空</button>
+                    <button class="btn btn-green" onclick="previewTrend()">预览</button>
+                    <button class="btn btn-blue" onclick="saveTrend()">保存趋势图</button>
+                    <button class="btn btn-yellow" onclick="saveTemplate()">保存模板</button>
+                </div>
+                <div class="btn-row" style="margin-top:6px;">
+                    <button class="btn btn-orange" onclick="exportTrendPatterns()">导出趋势图</button>
+                    <button class="btn btn-purple" onclick="importTrendPatterns()">导入趋势图</button>
+                </div>
+                <div class="trend-list" id="trendList"></div>
+            </div>
+
+            <!-- 最新开奖信息 -->
+            <div class="editor-box">
+                <div class="latest-lottery">
+                    <div class="lottery-header">
+                        <span class="lottery-label">最新开奖</span>
+                    </div>
+                    <div class="lottery-info">
+                        <div class="lottery-period" id="latestPeriod">--</div>
+                        <div class="lottery-numbers">
+                            <span class="numbers-label">开奖号：</span>
+                            <div class="numbers-container" id="latestNumbers">
+                                <span class="number-box">--</span>
+                                <span class="number-box">--</span>
+                                <span class="number-box">--</span>
+                                <span class="number-box">--</span>
+                                <span class="number-box">--</span>
+                            </div>
+                        </div>
+                        <div class="lottery-time" id="lotteryTime">数据获取时间：--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 自动分割区域 -->
+            <div class="editor-box">
+                <div class="auto-title">自动分割匹配</div>
+                <div class="btn-row">
+                    <button class="btn btn-green" onclick="openSplitConfig()">开始智能分割</button>
+                </div>
+                <div id="autoResult"></div>
+            </div>
+        </div>
+
+        <div class="right">
+            <div class="charts-container">
+                <div class="charts-grid" id="chartsGrid"></div>
+            </div>
+            <div class="status-bar" id="status">准备就绪</div>
+        </div>
+    </div>
+
+    <!-- 模态框 -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">黄金分割1</div>
+                <button class="modal-close" onclick="closeModal()">关闭</button>
+            </div>
+            <div class="modal-body">
+                <canvas id="bigCanvas" class="big-canvas"></canvas>
+            </div>
+            <div class="modal-info">
+                <div class="info-item"><span class="info-label">命中:</span><span class="info-value" id="mHit">0/0</span></div>
+                <div class="info-item"><span class="info-label">总期数:</span><span class="info-value" id="mTotal">0</span></div>
+                <div class="info-item"><span class="info-label">号码数:</span><span class="info-value" id="mCount">0</span></div>
+                <div class="info-item"><span class="info-label">定位:</span><span class="info-value" id="mPos">前三</span></div>
+                <div class="modal-actions">
+                    <button class="btn btn-blue" onclick="copyGroupNumbers()">复制号码</button>
+                    <button class="btn btn-green" onclick="saveTrendFromChart()">保存趋势图</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分割设置弹窗 -->
+    <div class="split-modal" id="splitModal">
+        <div class="split-modal-content">
+            <div class="split-modal-title">智能分割设置</div>
+            <div class="split-row">
+                <div class="split-num">分割模式</div>
+                <select id="splitMode" class="config-select" onchange="updateSplitModeUI()">
+                    <option value="auto">自动分割 (全自动执行)</option>
+                    <option value="manual">手动分割 (第一步手动触发)</option>
+                </select>
+            </div>
+            <div class="split-row">
+                <div class="split-num">匹配模式</div>
+                <select id="matchMode" class="config-select" onchange="updateMatchMode()">
+                    <option value="template">模板模式 (100%匹配)</option>
+                    <option value="trend">趋势图模式 (自定义相似度)</option>
+                </select>
+            </div>
+            <div class="split-row">
+                <div class="split-num">分割次数</div>
+                <select id="splitCount" class="config-select" onchange="updateSplitRows()">
+                    <option value="1">1次</option>
+                    <option value="2" selected>2次</option>
+                    <option value="3">3次</option>
+                    <option value="4">4次</option>
+                </select>
+            </div>
+            <div id="similarityConfig" style="display:none;">
+                <div class="split-row">
+                    <div class="split-num">相似度阈值</div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="similarity-presets">
+                            <button class="preset-btn" onclick="setSimilarity(50)">50%</button>
+                            <button class="preset-btn" onclick="setSimilarity(60)">60%</button>
+                            <button class="preset-btn" onclick="setSimilarity(70)">70%</button>
+                            <button class="preset-btn" onclick="setSimilarity(80)">80%</button>
+                            <button class="preset-btn preset-active" onclick="setSimilarity(90)">90%</button>
+                            <button class="preset-btn" onclick="setSimilarity(100)">100%</button>
+                        </div>
+                        <div style="display:flex;align-items:center;">
+                            <input type="number" id="similarityInput" class="similarity-input" value="90" min="0" max="100" step="0.01" onchange="onSimilarityInput()">
+                            <span style="color:#8b949e;margin-left:4px;">%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="splitConfigContainer">
+                <!-- 动态生成 -->
+            </div>
+            <div class="btn-row" style="margin-top:20px;">
+                <button class="btn btn-gray" onclick="closeSplitModal()">取消</button>
+                <button class="btn btn-green" onclick="startAutoSplit()">开始分割</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var drawData = [];
+        var groups = [];
+        var posType = 'back'; // 默认选择后三
+        var chartCount = 0;
+        var currentChartIdx = 0;
+        var currentN = 0; // 当前黄金分割数量
+
+        function updateCurrentDrawDisplay() {
+            if (drawData.length > 0) {
+                var latest = drawData[drawData.length - 1]; // 最新一期（数据是最旧的在前，最新的在后）
+                var number = latest.num || latest.number || latest.numbers || '';
+                var period = latest.period || latest.issue || '';
+                
+                // 格式化号码显示（每个数字之间加空格）
+                var formattedNumber = number.toString().split('').join(' ');
+                
+                document.getElementById('currentDrawNumber').textContent = formattedNumber;
+                document.getElementById('currentDrawPeriod').textContent = '';
+                
+                // 更新最新开奖区域
+                updateLatestLotteryDisplay(period, number.toString());
+            } else {
+                document.getElementById('currentDrawNumber').textContent = '--';
+                document.getElementById('currentDrawPeriod').textContent = '';
+                
+                // 更新最新开奖区域（无数据）
+                updateLatestLotteryDisplay('', '');
+            }
+        }
+        
+        function updateLatestLotteryDisplay(period, number) {
+            var periodEl = document.getElementById('latestPeriod');
+            var numbersContainer = document.getElementById('latestNumbers');
+            var timeEl = document.getElementById('lotteryTime');
+            
+            if (periodEl) {
+                periodEl.textContent = period || '--';
+            }
+            
+            if (numbersContainer) {
+                if (number && number.length === 5) {
+                    var html = '';
+                    for (var i = 0; i < 5; i++) {
+                        html += '<span class="number-box">' + number[i] + '</span>';
+                    }
+                    numbersContainer.innerHTML = html;
+                } else {
+                    numbersContainer.innerHTML = 
+                        '<span class="number-box">--</span>' +
+                        '<span class="number-box">--</span>' +
+                        '<span class="number-box">--</span>' +
+                        '<span class="number-box">--</span>' +
+                        '<span class="number-box">--</span>';
+                }
+            }
+            
+            if (timeEl) {
+                var now = new Date();
+                var timeStr = now.getFullYear() + '-' + 
+                    String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                    String(now.getDate()).padStart(2, '0') + ' ' + 
+                    String(now.getHours()).padStart(2, '0') + ':' + 
+                    String(now.getMinutes()).padStart(2, '0') + ':' + 
+                    String(now.getSeconds()).padStart(2, '0');
+                timeEl.textContent = '数据获取时间：' + timeStr;
+            }
+        }
+
+        function fmtNum(n) { return String(n).padStart(3, '0'); }
+        function rand(s) { var x = Math.sin(s) * 10000; return x - Math.floor(x); }
+
+        function shuffle(arr, seed) {
+            seed = seed || Date.now();
+            var result = arr.slice();
+            for (var i = result.length - 1; i > 0; i--) {
+                var j = Math.floor(rand(seed + i) * (i + 1));
+                var t = result[i]; result[i] = result[j]; result[j] = t;
+            }
+            return result;
+        }
+
+        function createGroups(n, nums) {
+            var total = nums ? nums.slice() : [];
+            if (total.length === 0) {
+                for (var i = 0; i < 1000; i++) total.push(i);
+            }
+            var shuffled = shuffle(total, Date.now() + Math.random() * 10000);
+            var result = [];
+            for (var i = 0; i < n; i++) result.push([]);
+            for (var idx = 0; idx < shuffled.length; idx++) {
+                var exclude = idx % n;
+                for (var g = 0; g < n; g++) {
+                    if (g !== exclude) result[g].push(shuffled[idx]);
+                }
+            }
+            console.log('createGroups done, n=' + n + ', groups.length=' + result.length);
+            return result;
+        }
+
+        function updateCharts(n) {
+            console.log('========================================');
+            console.log('updateCharts called, n=' + n + ', groups.length=' + groups.length);
+            
+            var grid = document.getElementById('chartsGrid');
+            console.log('chartsGrid element:', grid);
+            grid.innerHTML = '';
+            console.log('chartsGrid cleared');
+            
+            var actualLen = Math.min(n, groups.length);
+            console.log('Actual charts to create: ' + actualLen);
+            
+            chartCount = actualLen;
+            
+            for (var i = 0; i < actualLen; i++) {
+                console.log('------------------------');
+                console.log('Loop iteration ' + i);
+                console.log('groups[' + i + '] exists:', groups[i] ? 'yes' : 'no');
+                console.log('groups[' + i + '] length:', groups[i] ? groups[i].length : 'undefined');
+                
+                if (groups[i] && groups[i].length > 0) {
+                    var box = document.createElement('div');
+                    box.className = 'chart-box';
+                    box.onclick = (function(idx) { return function() { openModal(idx); }; })(i);
+                    
+                    var title = document.createElement('div');
+                    title.className = 'chart-title';
+                    title.textContent = '黄金分割' + (i + 1);
+                    
+                    var hit = document.createElement('div');
+                    hit.className = 'chart-hit';
+                    var h = calcHit(groups[i], drawData);
+                    hit.textContent = '命中: ' + h.hits + '/' + h.total;
+                    
+                    var canvas = document.createElement('canvas');
+                    canvas.className = 'chart-canvas';
+                    canvas.width = 200;
+                    canvas.height = 130;
+                    
+                    box.appendChild(title);
+                    box.appendChild(hit);
+                    box.appendChild(canvas);
+                    grid.appendChild(box);
+                    
+                    renderChartWithEngine(canvas, groups[i], i, false);
+                    console.log('Created chart ' + (i + 1));
+                    console.log('Box appended to grid:', grid.children.length + ' children');
+                }
+            }
+            console.log('========================================');
+            console.log('updateCharts finished, grid has ' + grid.children.length + ' children');
+        }
+
+        function parseDraws(input) {
+            var lines = input.split('\n');
+            var result = [];
+            for (var i = 0; i < lines.length; i++) {
+                var p = lines[i].trim().split(/\s+/);
+                if (p.length >= 2) {
+                    var num = p[1].padStart(5, '0');
+                    if (num.length === 5) result.push({ period: p[0], issue: p[0], num: num });
+                }
+            }
+            return sortDrawData(result);
+        }
+
+        function sortDrawData(data) {
+            data.sort(function(a, b) {
+                var partsA = a.period.split('-');
+                var partsB = b.period.split('-');
+                if (partsA[0] !== partsB[0]) {
+                    return partsA[0].localeCompare(partsB[0]);
+                }
+                var numA = partsA.length > 1 ? parseInt(partsA[1]) : 0;
+                var numB = partsB.length > 1 ? parseInt(partsB[1]) : 0;
+                return numA - numB;
+            });
+            return data;
+        }
+
+        function parseBase(input) {
+            // 替换各种分隔符为空格，然后分割成数组
+            var parts = input.replace(/[，,，\n\r\t]/g, ' ').split(/\s+/);
+            var result = [];
+            var seen = {};
+            for (var i = 0; i < parts.length; i++) {
+                var part = parts[i].trim();
+                if (!part) continue;
+                
+                // 尝试解析为数字
+                var n = parseInt(part, 10);
+                if (!isNaN(n) && n >= 0 && n <= 999 && !seen[n]) {
+                    seen[n] = true;
+                    result.push(n);
+                }
+            }
+            return result;
+        }
+
+        function getPosNum(num) {
+            if (!num) return -1;
+            if (posType === 'front') return parseInt(num.substring(0, 3), 10);
+            if (posType === 'middle') return parseInt(num.substring(1, 4), 10);
+            return parseInt(num.substring(2, 5), 10);
+        }
+
+        function calcHit(group, draws) {
+            var set = {};
+            for (var i = 0; i < group.length; i++) set[group[i]] = true;
+            
+            var drawMap = {};
+            for (var i = 0; i < draws.length; i++) {
+                var item = draws[i];
+                if (item && item.period && item.num) {
+                    drawMap[item.period] = getPosNum(item.num);
+                }
+            }
+            
+            var hits = 0;
+            for (var i = 0; i < draws.length; i++) {
+                var item = draws[i];
+                if (item && item.period && drawMap[item.period] !== undefined) {
+                    if (set[drawMap[item.period]]) hits++;
+                }
+            }
+            return { hits: hits, total: draws.length };
+        }
+
+        var chartEngines = [];
+        
+        function renderChartWithEngine(canvas, group, chartIdx, isBig) {
+            var w = canvas.width;
+            var h = canvas.height;
+            
+            var container = document.createElement('div');
+            container.style.position = 'relative';
+            container.style.width = w + 'px';
+            container.style.height = h + 'px';
+            canvas.parentNode.insertBefore(container, canvas);
+            container.appendChild(canvas);
+            canvas.style.display = 'none';
+            
+            var engine = new TradingChartEngine.RenderEngine({
+                container: container,
+                width: w,
+                height: h
+            });
+            
+            var totalCnt = drawData.length;
+            var bigCount = 360;
+            var smallCount = 150;
+            if (typeof chartCount === 'number' && chartCount > 0) {
+                if (chartCount <= 4) smallCount = 150;
+                else if (chartCount <= 6) smallCount = 100;
+                else smallCount = 50;
+            }
+            var cnt = Math.min(totalCnt, isBig ? bigCount : smallCount);
+            if (cnt === 0) {
+                engine.stopRenderLoop();
+                return;
+            }
+            
+            engine.setMaxBars(cnt);
+            
+            var set = {};
+            for (var i = 0; i < group.length; i++) set[group[i]] = true;
+            
+            var drawMap = {};
+            for (var i = 0; i < drawData.length; i++) {
+                var item = drawData[i];
+                if (item && item.period && item.num) {
+                    drawMap[item.period] = getPosNum(item.num);
+                }
+            }
+            
+            var hitResults = [];
+            var freqData = [];
+            var barsData = [];
+            
+            var validIndices = [];
+            for (var i = 0; i < drawData.length; i++) {
+                var dataItem = drawData[i];
+                if (dataItem && dataItem.period && drawMap[dataItem.period] !== undefined) {
+                    var winNum = drawMap[dataItem.period];
+                    hitResults.push(set[winNum] ? 1 : 0);
+                    validIndices.push(i);
+                }
+            }
+            
+            var freqWindow = 60;
+            var hits = 0, misses = 0;
+            for (var i = 0; i < hitResults.length; i++) {
+                if (hitResults[i] === 1) hits++;
+                else misses++;
+                
+                if (i >= freqWindow) {
+                    if (hitResults[i - freqWindow] === 1) hits--;
+                    else misses--;
+                }
+                
+                freqData.push(hits - misses);
+            }
+            
+            var decay = 0.995;
+            var stepRed = 10;
+            var stepGreen = 20;
+            var current = 0;
+            var rawData = [];
+            for (var i = 0; i < hitResults.length; i++) {
+                var isHit = hitResults[i] === 1;
+                var prev = current;
+                current = current * decay + (isHit ? stepRed : -stepGreen);
+                rawData.push(current);
+                barsData.push({ o: prev, c: current, h: Math.max(prev, current), l: Math.min(prev, current) });
+            }
+            
+            var startIdx = Math.max(0, freqData.length - cnt);
+            freqData = freqData.slice(startIdx);
+            hitResults = hitResults.slice(startIdx);
+            barsData = barsData.slice(startIdx);
+            
+            var period = 10;
+            var multiplier = 2;
+            
+            var emaData = TradingChartEngine.calculateEMA(freqData, period);
+            var bollinger = TradingChartEngine.calculateBollinger(freqData, period, multiplier);
+            
+            engine.setKlineData(barsData, hitResults);
+            engine.setEMAData(emaData);
+            engine.setBollingerData(bollinger.upper, bollinger.mid, bollinger.lower);
+            
+            if (chartEngines[chartIdx]) {
+                chartEngines[chartIdx].destroy();
+            }
+            chartEngines[chartIdx] = engine;
+            
+            return engine;
+        }
+        
+        function drawChart(canvas, group, chartIdx, isBig) {
+            var ctx = canvas.getContext('2d');
+            var w = canvas.width;
+            var h = canvas.height;
+            
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, w, h);
+
+            var totalCnt = drawData.length;
+            var bigCount = 360;
+            var smallCount = 150;
+            if (typeof chartCount === 'number' && chartCount > 0) {
+                if (chartCount <= 4) smallCount = 150;
+                else if (chartCount <= 6) smallCount = 100;
+                else smallCount = 50;
+            }
+            var cnt = Math.min(totalCnt, isBig ? bigCount : smallCount);
+            if (cnt === 0) {
+                ctx.fillStyle = '#666666';
+                ctx.font = (isBig ? '24px' : '12px') + ' sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('暂无数据', w/2, h/2);
+                return;
+            }
+
+            var startIdx = totalCnt - cnt;
+            var cw = (w - 70) / cnt * (isBig ? 0.45 : 0.4);
+            var gap = (w - 70) / cnt - cw;
+            var pad = { top: (isBig ? 35 : 20), right: (isBig ? 50 : 40), bottom: (isBig ? 40 : 25), left: (isBig ? 50 : 40) };
+            var ch = h - pad.top - pad.bottom;
+
+            var set = {};
+            for (var i = 0; i < group.length; i++) set[group[i]] = true;
+            
+            var drawMap = {};
+            for (var i = 0; i < drawData.length; i++) {
+                var item = drawData[i];
+                if (item && item.period && item.num) {
+                    drawMap[item.period] = getPosNum(item.num);
+                }
+            }
+            
+            var hitResults = [];
+            var validData = [];
+            for (var i = 0; i < drawData.length; i++) {
+                var dataItem = drawData[i];
+                if (dataItem && dataItem.period && drawMap[dataItem.period] !== undefined) {
+                    var winNum = drawMap[dataItem.period];
+                    hitResults.push(set[winNum] ? 1 : 0);
+                    validData.push(dataItem);
+                }
+            }
+            
+            var startIdx = Math.max(0, hitResults.length - cnt);
+            hitResults = hitResults.slice(startIdx);
+
+            var freqWindow = 60;
+            var hits = 0, misses = 0;
+            var freqData = [];
+            for (var i = 0; i < hitResults.length; i++) {
+                if (hitResults[i] === 1) hits++;
+                else misses++;
+                
+                if (i >= freqWindow) {
+                    if (hitResults[i - freqWindow] === 1) hits--;
+                    else misses--;
+                }
+                
+                freqData.push(hits - misses);
+            }
+            
+            var decay = 0.995;
+            var stepRed = 10;
+            var stepGreen = 20;
+            var current = 0;
+            var rawData = [];
+            var values = [];
+            for (var i = 0; i < hitResults.length; i++) {
+                var isHit = hitResults[i] === 1;
+                var prev = current;
+                current = current * decay + (isHit ? stepRed : -stepGreen);
+                rawData.push(current);
+                var high = Math.max(prev, current);
+                var low = Math.min(prev, current);
+                values.push({ o: prev, c: current, h: high, l: low });
+            }
+
+            var period = 10;
+            var k = 2 / (period + 1);
+            var ema = [];
+            var prevEma = freqData[0];
+            for (var i = 0; i < cnt; i++) {
+                prevEma = freqData[i] * k + prevEma * (1 - k);
+                ema.push(prevEma);
+            }
+
+            var std = [];
+            for (var i = 0; i < cnt; i++) {
+                var start = Math.max(0, i - period);
+                var slice = freqData.slice(start, i + 1);
+                var mean = 0;
+                for (var j = 0; j < slice.length; j++) mean += slice[j];
+                mean /= slice.length;
+                var variance = 0;
+                for (var j = 0; j < slice.length; j++) variance += Math.pow(slice[j] - mean, 2);
+                variance /= slice.length;
+                std.push(Math.sqrt(variance));
+            }
+
+            var multiplier = 2;
+            var upper = [], lower = [], mid = [];
+            for (var i = 0; i < cnt; i++) {
+                mid.push(ema[i]);
+                upper.push(mid[i] + std[i] * multiplier);
+                lower.push(mid[i] - std[i] * multiplier);
+            }
+
+            var minVal = Infinity, maxVal = -Infinity;
+            for (var i = 0; i < cnt; i++) {
+                minVal = Math.min(minVal, values[i].l, lower[i]);
+                maxVal = Math.max(maxVal, values[i].h, upper[i]);
+            }
+            var padding = (maxVal - minVal) * 0.2;
+            if (padding < 20) padding = 20;
+            var chartMin = minVal - padding;
+            var chartMax = maxVal + padding;
+
+            var sy = function(val) { return pad.top + ch * (chartMax - val) / (chartMax - chartMin); };
+            var sx = function(i) { return pad.left + i * (cw + gap); };
+
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.lineWidth = 0.5;
+            var gridLines = 10;
+            for (var i = 0; i <= gridLines; i++) {
+                var val = chartMin + (chartMax - chartMin) * i / gridLines;
+                var y = sy(val);
+                ctx.beginPath();
+                ctx.moveTo(pad.left, y);
+                ctx.lineTo(w - pad.right, y);
+                ctx.stroke();
+            }
+
+            ctx.strokeStyle = '#0066cc';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(sx(0) + cw / 2, sy(upper[0]));
+            for (var i = 1; i < cnt; i++) ctx.lineTo(sx(i) + cw / 2, sy(upper[i]));
+            ctx.stroke();
+
+            ctx.strokeStyle = '#0066cc';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(sx(0) + cw / 2, sy(lower[0]));
+            for (var i = 1; i < cnt; i++) ctx.lineTo(sx(i) + cw / 2, sy(lower[i]));
+            ctx.stroke();
+
+            ctx.strokeStyle = '#3366ff';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(sx(0) + cw / 2, sy(mid[0]));
+            for (var i = 1; i < cnt; i++) ctx.lineTo(sx(i) + cw / 2, sy(mid[i]));
+            ctx.stroke();
+
+            for (var i = 0; i < cnt; i++) {
+                var x = sx(i);
+                var v = values[i];
+                var isUp = v.c >= v.o;
+                var color = isUp ? '#ff0000' : '#00cccc';
+
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(x + cw / 2, sy(v.h));
+                ctx.lineTo(x + cw / 2, sy(v.l));
+                ctx.stroke();
+
+                var bodyTop = sy(Math.max(v.o, v.c));
+                var bodyBottom = sy(Math.min(v.o, v.c));
+                var bodyH = Math.abs(bodyBottom - bodyTop);
+                if (bodyH < 1) bodyH = 1;
+                ctx.fillStyle = color;
+                ctx.fillRect(x, bodyTop, cw, bodyH);
+            }
+
+            ctx.fillStyle = '#666666';
+            ctx.font = (isBig ? '10px' : '8px') + ' sans-serif';
+            ctx.textAlign = 'right';
+            for (var i = 0; i <= gridLines; i++) {
+                var val = Math.round(chartMin + (chartMax - chartMin) * (gridLines - i) / gridLines);
+                var y = sy(val);
+                ctx.fillText(val, w - 5, y + 3);
+            }
+
+            ctx.textAlign = 'center';
+            var step = isBig ? Math.ceil(cnt / 15) : Math.ceil(cnt / 8);
+            for (var i = 0; i < cnt; i += step) {
+                var x = sx(i) + cw / 2;
+                var dataItem = drawData[startIdx + i];
+                var issueText = dataItem && dataItem.issue ? dataItem.issue.substring(4) : '';
+                ctx.fillText(issueText, x, h - 6);
+            }
+
+            if (isBig) {
+                ctx.fillStyle = '#888888';
+                ctx.font = '9px Microsoft YaHei, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText('Upper', 5, pad.top + 10);
+                ctx.fillStyle = '#0066cc';
+                ctx.fillRect(28, pad.top + 6, 10, 1);
+                ctx.fillStyle = '#888888';
+                ctx.fillText('Mid', 43, pad.top + 10);
+                ctx.fillStyle = '#3366ff';
+                ctx.fillRect(68, pad.top + 6, 10, 1);
+                ctx.fillStyle = '#888888';
+                ctx.fillText('Lower', 83, pad.top + 10);
+                ctx.fillStyle = '#0066cc';
+                ctx.fillRect(108, pad.top + 6, 10, 1);
+            }
+        }
+
+        function calcMACD(values) {
+            var ema12 = [], ema26 = [], macd = [], signal = [], hist = [];
+            var k12 = 2 / 13, k26 = 2 / 27, k9 = 2 / 10;
+            
+            for (var i = 0; i < values.length; i++) {
+                var close = values[i].c;
+                ema12.push(i === 0 ? close : ema12[i-1] * (1 - k12) + close * k12);
+                ema26.push(i === 0 ? close : ema26[i-1] * (1 - k26) + close * k26);
+                macd.push(ema12[i] - ema26[i]);
+                signal.push(i === 0 ? macd[i] : signal[i-1] * (1 - k9) + macd[i] * k9);
+                hist.push(macd[i] - signal[i]);
+            }
+            return { macd: macd, signal: signal, hist: hist };
+        }
+
+        function drawMainChart(canvas, group, chartIdx) {
+            var ctx = canvas.getContext('2d');
+            var w = canvas.width;
+            var h = canvas.height;
+            
+            ctx.fillStyle = '#0d1117';
+            ctx.fillRect(0, 0, w, h);
+
+            var cnt = Math.min(drawData.length, 80);
+            if (cnt === 0) {
+                ctx.fillStyle = '#666';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('暂无数据', w/2, h/2);
+                return;
+            }
+
+            var cw = (w - 80) / cnt * 0.75;
+            var gap = (w - 80) / cnt - cw;
+            var pad = { top: 25, right: 60, bottom: 35, left: 60 };
+            var ch = h - pad.top - pad.bottom;
+
+            var set = {};
+            for (var i = 0; i < group.length; i++) set[group[i]] = true;
+            
+            var drawMap = {};
+            for (var i = 0; i < drawData.length; i++) {
+                var item = drawData[i];
+                if (item && item.period && item.num) {
+                    drawMap[item.period] = getPosNum(item.num);
+                }
+            }
+            
+            var hitResults = [];
+            for (var i = 0; i < cnt; i++) {
+                var dataItem = drawData[i];
+                if (dataItem && dataItem.period && drawMap[dataItem.period] !== undefined) {
+                    hitResults.push(set[drawMap[dataItem.period]] ? 1 : 0);
+                } else {
+                    hitResults.push(0);
+                }
+            }
+
+            ctx.strokeStyle = '#21262d';
+            ctx.lineWidth = 1;
+            var gridLines = 8;
+            for (var i = 0; i <= gridLines; i++) {
+                var y = pad.top + ch * i / gridLines;
+                ctx.beginPath();
+                ctx.moveTo(pad.left, y);
+                ctx.lineTo(w - pad.right, y);
+                ctx.stroke();
+            }
+            for (var i = 0; i <= 5; i++) {
+                var x = pad.left + (w - pad.left - pad.right) * i / 5;
+                ctx.beginPath();
+                ctx.moveTo(x, pad.top);
+                ctx.lineTo(x, h - pad.bottom);
+                ctx.stroke();
+            }
+
+            var seed = Date.now() + chartIdx * 10000;
+            var last = 50;
+            var values = [];
+            for (var i = 0; i < cnt; i++) {
+                var bonus = hitResults[i] ? 15 : -10;
+                var r = rand(seed + i * 100 + chartIdx * 500);
+                var close = Math.min(95, Math.max(5, last + bonus + (r - 0.5) * 10));
+                var high = Math.min(100, close + rand(seed + i * 100 + 1) * 6);
+                var low = Math.max(0, close - rand(seed + i * 100 + 2) * 6);
+                var open = i === 0 ? close : last;
+                values.push({ o: open, c: close, h: high, l: low });
+                last = close;
+            }
+
+            var sy = function(val) { return pad.top + ch * (1 - val / 100); };
+            var sx = function(i) { return pad.left + i * (cw + gap); };
+            
+            for (var i = 0; i < cnt; i++) {
+                var x = sx(i);
+                var v = values[i];
+                var isUp = v.c >= v.o;
+                var color = isUp ? '#ff0000' : '#00cccc';
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x + cw / 2, sy(v.h));
+                ctx.lineTo(x + cw / 2, sy(v.l));
+                ctx.stroke();
+
+                var bodyTop = sy(Math.max(v.o, v.c));
+                var bodyH = Math.abs(sy(v.c) - sy(v.o));
+                if (bodyH < 3) bodyH = 3;
+                ctx.fillStyle = color;
+                ctx.fillRect(x, bodyTop, cw, bodyH);
+            }
+
+            var ma5Sum = 0, ma10Sum = 0, ma20Sum = 0;
+            var ma5Pts = [], ma10Pts = [], ma20Pts = [];
+            for (var i = 0; i < cnt; i++) {
+                ma5Sum += values[i].c;
+                ma10Sum += values[i].c;
+                ma20Sum += values[i].c;
+                if (i >= 4) ma5Pts.push({ x: sx(i) + cw / 2, y: sy(ma5Sum / 5) });
+                if (i >= 9) ma10Pts.push({ x: sx(i) + cw / 2, y: sy(ma10Sum / 10) });
+                if (i >= 19) ma20Pts.push({ x: sx(i) + cw / 2, y: sy(ma20Sum / 20) });
+                if (i >= 5) ma5Sum -= values[i - 5].c;
+                if (i >= 10) ma10Sum -= values[i - 10].c;
+                if (i >= 20) ma20Sum -= values[i - 20].c;
+            }
+
+            if (ma5Pts.length > 0) {
+                ctx.strokeStyle = '#58a6ff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(ma5Pts[0].x, ma5Pts[0].y);
+                for (var i = 1; i < ma5Pts.length; i++) ctx.lineTo(ma5Pts[i].x, ma5Pts[i].y);
+                ctx.stroke();
+            }
+
+            if (ma10Pts.length > 0) {
+                ctx.strokeStyle = '#f0883e';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(ma10Pts[0].x, ma10Pts[0].y);
+                for (var i = 1; i < ma10Pts.length; i++) ctx.lineTo(ma10Pts[i].x, ma10Pts[i].y);
+                ctx.stroke();
+            }
+
+            if (ma20Pts.length > 0) {
+                ctx.strokeStyle = '#a371f7';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(ma20Pts[0].x, ma20Pts[0].y);
+                for (var i = 1; i < ma20Pts.length; i++) ctx.lineTo(ma20Pts[i].x, ma20Pts[i].y);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#8b949e';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'right';
+            for (var i = 0; i <= gridLines; i++) {
+                var y = pad.top + ch * i / gridLines;
+                ctx.fillText(Math.round(100 - i * 100 / gridLines), w - 8, y + 4);
+            }
+
+            ctx.textAlign = 'center';
+            var step = Math.ceil(cnt / 10);
+            for (var i = 0; i < cnt; i += step) {
+                var x = sx(i) + cw / 2;
+                ctx.fillText(drawData[i].issue.substring(4), x, h - 10);
+            }
+
+            ctx.fillStyle = '#c9d1d9';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('MA5', 8, pad.top + 15);
+            ctx.fillStyle = '#58a6ff';
+            ctx.fillRect(35, pad.top + 10, 20, 2);
+            ctx.fillStyle = '#c9d1d9';
+            ctx.fillText('MA10', 58, pad.top + 15);
+            ctx.fillStyle = '#f0883e';
+            ctx.fillRect(95, pad.top + 10, 20, 2);
+            ctx.fillStyle = '#c9d1d9';
+            ctx.fillText('MA20', 118, pad.top + 15);
+            ctx.fillStyle = '#a371f7';
+            ctx.fillRect(155, pad.top + 10, 20, 2);
+
+            return values;
+        }
+
+        function drawMACDChart(canvas, values) {
+            var ctx = canvas.getContext('2d');
+            var w = canvas.width;
+            var h = canvas.height;
+            
+            ctx.fillStyle = '#0d1117';
+            ctx.fillRect(0, 0, w, h);
+
+            var cnt = values.length;
+            if (cnt === 0) {
+                ctx.fillStyle = '#666';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('暂无数据', w/2, h/2);
+                return;
+            }
+
+            var cw = (w - 80) / cnt * 0.75;
+            var gap = (w - 80) / cnt - cw;
+            var pad = { top: 15, right: 60, bottom: 25, left: 60 };
+            var ch = h - pad.top - pad.bottom;
+
+            var macd = calcMACD(values);
+            var maxVal = Math.max(...macd.macd, ...macd.signal, ...macd.hist.map(x => Math.abs(x))) * 1.2;
+            if (maxVal < 0.1) maxVal = 1;
+
+            ctx.strokeStyle = '#21262d';
+            ctx.lineWidth = 1;
+            var gridLines = 6;
+            for (var i = 0; i <= gridLines; i++) {
+                var y = pad.top + ch * i / gridLines;
+                ctx.beginPath();
+                ctx.moveTo(pad.left, y);
+                ctx.lineTo(w - pad.right, y);
+                ctx.stroke();
+            }
+
+            var sy = function(val) { return pad.top + ch / 2 - val / maxVal * (ch / 2); };
+            var sx = function(i) { return pad.left + i * (cw + gap); };
+
+            ctx.strokeStyle = '#58a6ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(sx(0) + cw / 2, sy(macd.macd[0]));
+            for (var i = 1; i < cnt; i++) ctx.lineTo(sx(i) + cw / 2, sy(macd.macd[i]));
+            ctx.stroke();
+
+            ctx.strokeStyle = '#f0883e';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(sx(0) + cw / 2, sy(macd.signal[0]));
+            for (var i = 1; i < cnt; i++) ctx.lineTo(sx(i) + cw / 2, sy(macd.signal[i]));
+            ctx.stroke();
+
+            for (var i = 0; i < cnt; i++) {
+                var x = sx(i);
+                var hVal = macd.hist[i];
+                var color = hVal >= 0 ? '#3fb950' : '#f85149';
+                ctx.fillStyle = color;
+                var barH = Math.abs(hVal / maxVal * (ch / 2));
+                if (barH < 1) barH = 1;
+                ctx.fillRect(x, hVal >= 0 ? sy(hVal) : sy(0), cw, barH);
+            }
+
+            ctx.fillStyle = '#8b949e';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'right';
+            for (var i = 0; i <= gridLines; i++) {
+                var y = pad.top + ch * i / gridLines;
+                var val = ((gridLines / 2 - i) / (gridLines / 2) * maxVal).toFixed(2);
+                ctx.fillText(val, w - 8, y + 3);
+            }
+        }
+
+        function drawRSIChart(canvas, values) {
+            var ctx = canvas.getContext('2d');
+            var w = canvas.width;
+            var h = canvas.height;
+            
+            ctx.fillStyle = '#0d1117';
+            ctx.fillRect(0, 0, w, h);
+
+            var cnt = values.length;
+            if (cnt === 0) {
+                ctx.fillStyle = '#666';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('暂无数据', w/2, h/2);
+                return;
+            }
+
+            var cw = (w - 80) / cnt * 0.75;
+            var gap = (w - 80) / cnt - cw;
+            var pad = { top: 15, right: 60, bottom: 25, left: 60 };
+            var ch = h - pad.top - pad.bottom;
+
+            var gains = [], losses = [];
+            for (var i = 1; i < cnt; i++) {
+                var diff = values[i].c - values[i-1].c;
+                gains.push(Math.max(0, diff));
+                losses.push(Math.max(0, -diff));
+            }
+
+            var avgGain = [], avgLoss = [], rs = [], rsi = [];
+            var period = 14;
+            for (var i = 0; i < gains.length; i++) {
+                if (i < period - 1) {
+                    avgGain.push(gains.slice(0, i+1).reduce((a,b) => a+b, 0) / (i+1));
+                    avgLoss.push(losses.slice(0, i+1).reduce((a,b) => a+b, 0) / (i+1));
+                } else {
+                    avgGain.push((avgGain[i-1] * (period-1) + gains[i]) / period);
+                    avgLoss.push((avgLoss[i-1] * (period-1) + losses[i]) / period);
+                }
+                rs.push(avgLoss[i] > 0 ? avgGain[i] / avgLoss[i] : 100);
+                rsi.push(100 - 100 / (1 + rs[i]));
+            }
+
+            ctx.strokeStyle = '#21262d';
+            ctx.lineWidth = 1;
+            var gridLines = 5;
+            for (var i = 0; i <= gridLines; i++) {
+                var y = pad.top + ch * i / gridLines;
+                ctx.beginPath();
+                ctx.moveTo(pad.left, y);
+                ctx.lineTo(w - pad.right, y);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = 'rgba(248, 81, 73, 0.2)';
+            var overboughtY = pad.top + ch * 0.2;
+            ctx.fillRect(pad.left, pad.top, w - pad.left - pad.right, overboughtY - pad.top);
+
+            ctx.fillStyle = 'rgba(63, 185, 80, 0.2)';
+            var oversoldY = pad.top + ch * 0.8;
+            ctx.fillRect(pad.left, oversoldY, w - pad.left - pad.right, h - pad.bottom - oversoldY);
+
+            ctx.strokeStyle = '#f85149';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(pad.left, overboughtY);
+            ctx.lineTo(w - pad.right, overboughtY);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#3fb950';
+            ctx.beginPath();
+            ctx.moveTo(pad.left, oversoldY);
+            ctx.lineTo(w - pad.right, oversoldY);
+            ctx.stroke();
+
+            var sy = function(val) { return pad.top + ch * (1 - val / 100); };
+            var sx = function(i) { return pad.left + (i + 1) * (cw + gap); };
+
+            ctx.strokeStyle = '#c9d1d9';
+            ctx.lineWidth = 2;
+            if (rsi.length > 0) {
+                ctx.beginPath();
+                ctx.moveTo(sx(0) + cw / 2, sy(rsi[0]));
+                for (var i = 1; i < rsi.length; i++) ctx.lineTo(sx(i) + cw / 2, sy(rsi[i]));
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#8b949e';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'right';
+            for (var i = 0; i <= gridLines; i++) {
+                var y = pad.top + ch * i / gridLines;
+                ctx.fillText(Math.round(100 - i * 100 / gridLines), w - 8, y + 3);
+            }
+        }
+
+        function showGroups() {
+            var list = document.getElementById('groupsList');
+            if (groups.length === 0) {
+                list.innerHTML = '点击按钮生成分组';
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < groups.length; i++) {
+                var h = calcHit(groups[i], drawData);
+                var nums = [];
+                for (var j = 0; j < Math.min(30, groups[i].length); j++) {
+                    nums.push(fmtNum(groups[i][j]));
+                }
+                html += '<div class="group-item">' +
+                    '<div class="group-header">' +
+                    '<span class="group-name">第' + (i+1) + '组</span>' +
+                    '<span class="group-info">' + groups[i].length + '个 | 命中' + h.hits + '/' + h.total + '</span>' +
+                    '</div>' +
+                    '<button class="copy-btn" onclick="copyGroup(' + i + ')">复制</button>' +
+                    '<div class="group-nums">' + nums.join(' ') + (groups[i].length > 30 ? '...' : '') + '</div>' +
+                    '</div>';
+            }
+            list.innerHTML = html;
+        }
+
+        function copyGroup(idx) {
+            var nums = [];
+            for (var i = 0; i < groups[idx].length; i++) {
+                nums.push(groups[idx][i]);
+            }
+            nums.sort(function(a, b) { return a - b; });
+            var formatted = nums.map(function(n) { return fmtNum(n); });
+            var result = '';
+            for (var i = 0; i < formatted.length; i += 10) {
+                result += formatted.slice(i, i + 10).join(' ') + '\n';
+            }
+            navigator.clipboard.writeText(result.trim()).then(function() {
+                alert('已复制第' + (idx+1) + '组，共' + nums.length + '个号码');
+            });
+        }
+
+        function generateGroups(n) {
+            console.log('========================================');
+            console.log('generateGroups called with n=' + n);
+            
+            currentN = n; // 保存当前的分组数量
+            
+            var btns = document.getElementsByClassName('golden-btn');
+            for (var i = 0; i < btns.length; i++) {
+                btns[i].classList.remove('active');
+            }
+            event.target.classList.add('active');
+
+            var base = document.getElementById('baseInput').value.trim();
+            var baseNums = null;
+            if (base) {
+                baseNums = parseBase(base);
+                console.log('Using base numbers: ' + baseNums.length + ' numbers');
+                if (baseNums.length < n) {
+                    alert('大底至少需要' + n + '个号码');
+                    return;
+                }
+            }
+
+            groups = createGroups(n, baseNums);
+            console.log('Groups created: ' + groups.length + ' groups');
+            console.log('Group sizes:', groups.map(function(g) { return g.length; }));
+            
+            showGroups();
+            updateCharts(n);
+
+            var posName = posType === 'front' ? '前三' : (posType === 'middle' ? '中三' : '后三');
+            document.getElementById('status').textContent = 
+                '已生成' + n + '组 | 每组约' + Math.round(groups[0].length) + '个号码 | 定位: ' + posName;
+        }
+
+        function loadDraws() {
+            var input = document.getElementById('drawInput').value.trim();
+            if (!input) {
+                alert('请输入开奖数据');
+                return;
+            }
+            drawData = parseDraws(input);
+            clearHitCache();
+            document.getElementById('drawCount').textContent = drawData.length + '期';
+            
+            var posName = posType === 'front' ? '前三' : (posType === 'middle' ? '中三' : '后三');
+            document.getElementById('status').textContent = 
+                '已导入' + drawData.length + '期开奖数据 | 定位: ' + posName;
+            
+            if (groups.length > 0) {
+                showGroups();
+                updateCharts(groups.length);
+            }
+        }
+
+        function clearDraws() {
+            document.getElementById('drawInput').value = '';
+            drawData = [];
+            document.getElementById('drawCount').textContent = '0期';
+            if (groups.length > 0) {
+                showGroups();
+                updateCharts(groups.length);
+            }
+        }
+
+        function clearBase() {
+            document.getElementById('baseInput').value = '';
+        }
+
+        function pasteToBase() {
+            navigator.clipboard.readText().then(function(text) {
+                document.getElementById('baseInput').value = text;
+                alert('粘贴成功！');
+            }).catch(function(err) {
+                alert('粘贴失败，请手动粘贴');
+            });
+        }
+
+        function showBaseTrend() {
+            console.log('showBaseTrend called at ' + new Date().toLocaleTimeString());
+            
+            var input = document.getElementById('baseInput').value.trim();
+            if (!input) {
+                alert('请先输入或粘贴号码');
+                return;
+            }
+            
+            var nums = input.split(/[\s\n]+/).filter(function(n) { return n.length > 0; });
+            if (nums.length === 0) {
+                alert('请输入有效的号码');
+                return;
+            }
+            
+            var group = nums.map(function(n) { return parseInt(n, 10); });
+            
+            console.log('解析到 ' + group.length + ' 个号码');
+            console.log('当前drawData长度: ' + drawData.length);
+            
+            document.getElementById('modalTitle').textContent = '指定大底趋势图';
+            document.getElementById('mCount').textContent = group.length;
+            
+            var h = calcHit(group, drawData);
+            document.getElementById('mHit').textContent = h.hits + '/' + h.total;
+            document.getElementById('mTotal').textContent = h.total;
+            
+            document.getElementById('modal').style.display = 'flex';
+            
+            setTimeout(function() {
+                var canvas = document.getElementById('bigCanvas');
+                var container = canvas.parentElement;
+                canvas.width = container.offsetWidth - 20;
+                canvas.height = container.offsetHeight - 20;
+                
+                console.log('绘制趋势图: canvas尺寸 ' + canvas.width + 'x' + canvas.height);
+                drawChart(canvas, group, -1, true);
+                console.log('趋势图绘制完成');
+            }, 50);
+        }
+
+        function applyBase() {
+            var active = document.querySelector('.golden-btn.active');
+            if (!active) {
+                alert('请先选择黄金分割类型');
+                return;
+            }
+            var n = parseInt(active.textContent.match(/\d+/)[0]);
+            generateGroups(n);
+        }
+
+        function setPos(pos) {
+            posType = pos;
+            var btns = document.getElementsByClassName('pos-btn');
+            for (var i = 0; i < btns.length; i++) {
+                btns[i].classList.remove('active');
+            }
+            event.target.classList.add('active');
+
+            var posName = pos === 'front' ? '前三' : (pos === 'middle' ? '中三' : '后三');
+            document.getElementById('status').textContent = '已切换定位: ' + posName;
+            
+            if (groups.length > 0) {
+                showGroups();
+                updateCharts(groups.length);
+            }
+        }
+
+        function createMock() {
+            var data = [];
+            var now = new Date();
+            for (var i = 0; i < 500; i++) {
+                var d = new Date(now);
+                d.setDate(d.getDate() - i);
+                var issue = d.getFullYear() + 
+                    String(d.getMonth()+1).padStart(2,'0') + 
+                    String(d.getDate()).padStart(2,'0');
+                var num = String(Math.floor(Math.random() * 100000)).padStart(5, '0');
+                data.push(issue + ' ' + num);
+            }
+            document.getElementById('drawInput').value = data.join('\n');
+            loadDraws();
+        }
+
+        function openModal(idx) {
+            if (!groups[idx]) return;
+            currentChartIdx = idx;
+            
+            var modal = document.getElementById('modal');
+            var posName = posType === 'front' ? '前三' : (posType === 'middle' ? '中三' : '后三');
+            var h = calcHit(groups[idx], drawData);
+            
+            document.getElementById('modalTitle').textContent = 
+                '后三【黄金分割' + (idx + 1) + '】频率K线(周期:1 理论周期:2)';
+            document.getElementById('mHit').textContent = h.hits + '/' + h.total;
+            document.getElementById('mTotal').textContent = drawData.length + '期';
+            document.getElementById('mCount').textContent = groups[idx].length + '个';
+            document.getElementById('mPos').textContent = posName;
+            
+            modal.style.display = 'flex';
+            
+            setTimeout(function() {
+                var canvas = document.getElementById('bigCanvas');
+                var container = canvas.parentElement;
+                canvas.width = container.offsetWidth - 20;
+                canvas.height = container.offsetHeight - 20;
+                renderChartWithEngine(canvas, groups[idx], idx, true);
+            }, 50);
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        document.getElementById('modal').onclick = function(e) {
+            if (e.target.id === 'modal') {
+                closeModal();
+            }
+        };
+        
+        function copyGroupNumbers() {
+            if (currentChartIdx < 0 || !groups[currentChartIdx]) return;
+            
+            var nums = groups[currentChartIdx].slice();
+            nums.sort(function(a, b) { return a - b; });
+            
+            var formatted = nums.map(function(n) { 
+                return String(n).padStart(3, '0'); 
+            });
+            
+            var text = '';
+            for (var i = 0; i < formatted.length; i += 10) {
+                text += formatted.slice(i, i + 10).join(' ') + '\n';
+            }
+            text = text.trim();
+            
+            navigator.clipboard.writeText(text).then(function() {
+                alert('号码已复制到剪贴板！\n\n' + text.substring(0, 100) + (text.length > 100 ? '...' : ''));
+            }).catch(function(err) {
+                // 降级方案
+                var textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('号码已复制到剪贴板！');
+            });
+        }
+        
+        function saveTrendFromChart() {
+            if (currentChartIdx < 0 || !groups[currentChartIdx]) return;
+            
+            var group = groups[currentChartIdx];
+            var hitData = calcHitData(group, drawData);
+            
+            // 获取命中数据（1=中，0=未中）
+            var trendStr = hitData.map(function(h) { 
+                return h.hit ? '1' : '0'; 
+            }).join('');
+            
+            var name = prompt('请输入趋势图名称:', '黄金分割' + (currentChartIdx + 1) + '趋势');
+            if (!name) return;
+            
+            // 创建趋势图对象
+            var newTrend = {
+                id: Date.now(),
+                name: name,
+                data: trendStr,
+                created: new Date().toLocaleString()
+            };
+            
+            trendPatterns.push(newTrend);
+            saveTrendList();
+            loadTrendList();
+            
+            alert('趋势图已保存到方案备用！');
+            closeModal();
+        }
+        
+        function checkHit(group, num) {
+            var posNum = getPosNum(num);
+            return group.indexOf(posNum) !== -1;
+        }
+        
+        function calcHitData(group, data) {
+            var result = [];
+            for (var i = 0; i < data.length; i++) {
+                var num = data[i].num;
+                var hit = checkHit(group, num);
+                result.push({ hit: hit, period: data[i].period });
+            }
+            return result;
+        }
+
+        window.onload = function() {
+            console.log('Page loaded');
+            loadFromLocalStorage();
+            if (drawData.length === 0) {
+                console.log('No saved data, creating mock data');
+                createMock();
+            }
+            console.log('Data loaded, drawData.length=' + drawData.length);
+            initEditor();
+            loadTrendList();
+            updateSplitRows();
+        };
+        
+        function loadFromLocalStorage() {
+            try {
+                var saved = localStorage.getItem('lotteryDrawData');
+                if (saved) {
+                    drawData = JSON.parse(saved);
+                    sortDrawData(drawData);
+                    document.getElementById('drawInput').value = formatDrawData(drawData);
+                    document.getElementById('drawCount').textContent = drawData.length + '期';
+                    updateCurrentDrawDisplay(); // 更新当期开奖号码显示
+                }
+            } catch (e) {
+                console.error('Failed to load from localStorage:', e);
+            }
+        }
+        
+        function exportData() {
+            if (drawData.length === 0) {
+                alert('没有数据可导出！');
+                return;
+            }
+            
+            var dataStr = JSON.stringify(drawData, null, 2);
+            var blob = new Blob([dataStr], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'lottery_data_' + new Date().toISOString().split('T')[0] + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            var statusEl = document.getElementById('apiStatus');
+            if (statusEl) {
+                statusEl.textContent = '数据导出成功！';
+                statusEl.style.color = '#238636';
+                setTimeout(function() { statusEl.textContent = ''; }, 3000);
+            }
+        }
+        
+        function importData() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+                
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        var importedData = JSON.parse(event.target.result);
+                        if (!Array.isArray(importedData)) {
+                            alert('无效的数据格式！');
+                            return;
+                        }
+                        
+                        // 合并数据
+                        var existingPeriods = {};
+                        for (var i = 0; i < drawData.length; i++) {
+                            existingPeriods[drawData[i].period] = true;
+                        }
+                        
+                        var addedCount = 0;
+                        for (var j = 0; j < importedData.length; j++) {
+                            var item = importedData[j];
+                            if (item && item.period && item.num && !existingPeriods[item.period]) {
+                                drawData.push(item);
+                                addedCount++;
+                            }
+                        }
+                        
+                        // 按日期和期数排序（最旧的在前，最新的在后）
+                        drawData.sort(function(a, b) {
+                            // 期号格式：20260620-0037
+                            var partsA = a.period.split('-');
+                            var partsB = b.period.split('-');
+                            
+                            // 先按日期排序
+                            if (partsA[0] !== partsB[0]) {
+                                return partsA[0].localeCompare(partsB[0]);
+                            }
+                            
+                            // 日期相同则按期数排序
+                            var numA = partsA.length > 1 ? parseInt(partsA[1]) : 0;
+                            var numB = partsB.length > 1 ? parseInt(partsB[1]) : 0;
+                            return numA - numB;
+                        });
+                        
+                        if (drawData.length > 500) {
+                            drawData = drawData.slice(drawData.length - 500);
+                        }
+                        
+                        saveToLocalStorage();
+                        document.getElementById('drawInput').value = formatDrawData(drawData);
+                        document.getElementById('drawCount').textContent = drawData.length + '期';
+                        loadDraws();
+                        
+                        var statusEl = document.getElementById('apiStatus');
+                        if (statusEl) {
+                            statusEl.textContent = '成功导入 ' + addedCount + ' 条数据！';
+                            statusEl.style.color = '#238636';
+                            setTimeout(function() { statusEl.textContent = ''; }, 3000);
+                        }
+                    } catch (e) {
+                        alert('数据解析失败: ' + e.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+        
+        var lastUpdateTime = null;
+        
+        function refreshChartsIfNeeded() {
+            console.log('========================================');
+            console.log('refreshChartsIfNeeded called at ' + new Date().toLocaleTimeString());
+            console.log('Current state:');
+            console.log('  - currentN=' + currentN);
+            console.log('  - groups.length=' + groups.length);
+            console.log('  - drawData.length=' + drawData.length);
+            
+            if (currentN > 0 && groups.length > 0 && drawData.length > 0) {
+                console.log('✓ 条件满足，开始刷新图表...');
+                showGroups();
+                updateCharts(currentN);
+                lastUpdateTime = new Date();
+                console.log('✓ 图表刷新完成，时间戳: ' + lastUpdateTime.toLocaleTimeString());
+            } else {
+                console.log('✗ 条件不满足，跳过刷新');
+                if (currentN === 0) console.log('  - currentN为0，未选择黄金分割类型');
+                if (groups.length === 0) console.log('  - groups为空，尚未生成分组');
+                if (drawData.length === 0) console.log('  - drawData为空，暂无开奖数据');
+            }
+        }
+        
+        function forceRefreshAllCharts() {
+            console.log('========================================');
+            console.log('forceRefreshAllCharts called - 强制刷新所有图表');
+            if (drawData.length > 0) {
+                console.log('  - drawData有数据，准备刷新');
+                if (currentN > 0 && groups.length > 0) {
+                    console.log('  - 有分组数据，调用updateCharts');
+                    showGroups();
+                    updateCharts(currentN);
+                } else {
+                    console.log('  - 无分组数据，跳过图表刷新');
+                }
+                updateCurrentDrawDisplay();
+                console.log('✓ 强制刷新完成');
+            } else {
+                console.log('✗ drawData为空，无法刷新');
+            }
+        }
+        
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('lotteryDrawData', JSON.stringify(drawData));
+                updateCurrentDrawDisplay(); // 更新当期开奖号码显示
+                
+                refreshChartsIfNeeded();
+            } catch (e) {
+                console.error('Failed to save to localStorage:', e);
+            }
+        }
+        
+        function saveDrawData() {
+            saveToLocalStorage();
+        }
+
+        // ==================== K线编辑器相关 ====================
+        var trendPatterns = loadTrendPatternsFromStorage();
+        var selectedTrendIdx = -1;
+        var editorData = [];
+        var isDrawing = false;
+        
+        function loadTrendPatternsFromStorage() {
+            var saved = localStorage.getItem('trendPatterns');
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to parse trendPatterns:', e);
+                    return [];
+                }
+            }
+            return [];
+        }
+
+        function initEditor() {
+            var canvas = document.getElementById('editorCanvas');
+            canvas.addEventListener('mousedown', function(e) {
+                isDrawing = true;
+                editorData = [];
+                drawEditorLine(e);
+            });
+            canvas.addEventListener('mousemove', function(e) {
+                if (isDrawing) drawEditorLine(e);
+            });
+            canvas.addEventListener('mouseup', function() {
+                isDrawing = false;
+            });
+            canvas.addEventListener('mouseleave', function() {
+                isDrawing = false;
+            });
+            clearEditor();
+        }
+
+        function drawEditorLine(e) {
+            var canvas = document.getElementById('editorCanvas');
+            var rect = canvas.getBoundingClientRect();
+            var y = e.clientY - rect.top;
+            var h = canvas.height;
+            
+            // 计算是1还是0（上方1=中，下方0=未中）
+            var val = y < h / 2 ? 1 : 0;
+            editorData.push(val);
+            
+            // 限制数据长度
+            if (editorData.length > 100) editorData.shift();
+            
+            drawEditorPreview();
+        }
+
+        function drawEditorPreview(data) {
+            var canvas = document.getElementById('editorCanvas');
+            var ctx = canvas.getContext('2d');
+            var w = canvas.width;
+            var h = canvas.height;
+            
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+            
+            var d = data || editorData;
+            if (d.length === 0) {
+                ctx.fillStyle = '#666';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('点击上方区域绘制趋势图', w/2, h/2);
+                ctx.font = '10px sans-serif';
+                ctx.fillText('上方=命中(1) 下方=未中(0)', w/2, h/2 + 20);
+                return;
+            }
+            
+            // 绘制网格
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.lineWidth = 0.5;
+            for (var i = 0; i <= 10; i++) {
+                var y = h * i / 10;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+            
+            // 绘制数据线
+            var cw = w / d.length;
+            ctx.strokeStyle = '#3366ff';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            var midY = h / 2;
+            for (var i = 0; i < d.length; i++) {
+                var x = i * cw + cw / 2;
+                var y = d[i] === 0 ? midY - 20 : midY + 20;
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+            
+            // 绘制点
+            ctx.fillStyle = '#ff0000';
+            for (var i = 0; i < d.length; i++) {
+                var x = i * cw + cw / 2;
+                var y = d[i] === 0 ? midY - 20 : midY + 20;
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function clearEditor() {
+            editorData = [];
+            document.getElementById('editorInput').value = '';
+            drawEditorPreview();
+        }
+
+        function previewTrend() {
+            var input = document.getElementById('editorInput').value.trim();
+            if (!input) {
+                alert('请先输入数据或绘制趋势图');
+                return;
+            }
+            
+            // 验证输入格式：只能是连续的0和1
+            if (!/^[01]+$/.test(input)) {
+                alert('输入格式错误！只能输入0和1的组合（例如：110、00110、101010）');
+                return;
+            }
+            
+            // 解析输入数据
+            editorData = [];
+            for (var i = 0; i < input.length; i++) {
+                editorData.push(parseInt(input[i]));
+            }
+            
+            if (editorData.length === 0) {
+                alert('无效的数据格式，请输入0和1的组合');
+                return;
+            }
+            
+            drawEditorPreview();
+        }
+        
+        function onEditorInput() {
+            // 实时验证输入格式
+            var input = document.getElementById('editorInput').value;
+            
+            // 过滤非0和1的字符
+            var filtered = '';
+            for (var i = 0; i < input.length; i++) {
+                if (input[i] === '0' || input[i] === '1') {
+                    filtered += input[i];
+                }
+            }
+            
+            // 如果过滤后不同，说明有非法的字符
+            if (filtered !== input) {
+                document.getElementById('editorInput').value = filtered;
+                alert('只能输入0和1，非法字符已自动移除');
+            }
+            
+            // 实时预览
+            if (filtered.length > 0) {
+                editorData = [];
+                for (var i = 0; i < filtered.length; i++) {
+                    editorData.push(parseInt(filtered[i]));
+                }
+                drawEditorPreview();
+            }
+        }
+
+        function saveTrend() {
+            var input = document.getElementById('editorInput').value.trim();
+            
+            if (!input) {
+                alert('请先在输入框中输入0和1的数据');
+                return;
+            }
+            
+            // 严格验证输入格式：只能是连续的0和1
+            if (!/^[01]+$/.test(input)) {
+                alert('输入格式错误！只能输入0和1的组合（例如：110、00110、101010）');
+                return;
+            }
+            
+            // 精确解析输入数据
+            editorData = [];
+            for (var i = 0; i < input.length; i++) {
+                editorData.push(parseInt(input[i]));
+            }
+            
+            if (editorData.length < 5) {
+                alert('趋势图数据太短，至少需要5个数据点');
+                return;
+            }
+            
+            var name = prompt('输入趋势图名称:', '趋势图' + (trendPatterns.length + 1));
+            if (!name) return;
+            
+            trendPatterns.push({
+                name: name,
+                data: editorData.slice(), // 精确保存用户输入的数据
+                type: 'trend'
+            });
+            
+            saveTrendList(); // 保存到本地
+            loadTrendList();
+            document.getElementById('editorInput').value = '';
+            clearEditor();
+            
+            alert('趋势图已保存！\n数据长度：' + input.length + '个\n匹配规则：末尾数字对应最新期，开头数字对应最旧期\n规则：1=中，0=未中');
+        }
+        
+        function saveTemplate() {
+            var input = document.getElementById('editorInput').value.trim();
+            
+            if (!input) {
+                alert('请先在输入框中输入0和1的数据');
+                return;
+            }
+            
+            // 严格验证输入格式：只能是连续的0和1
+            if (!/^[01]+$/.test(input)) {
+                alert('输入格式错误！只能输入0和1的组合（例如：110、00110、101010）');
+                return;
+            }
+            
+            // 精确解析输入数据
+            editorData = [];
+            for (var i = 0; i < input.length; i++) {
+                editorData.push(parseInt(input[i]));
+            }
+            
+            if (editorData.length < 3) {
+                alert('模板数据太短，至少需要3个数据点');
+                return;
+            }
+            
+            var name = prompt('输入模板名称:', '模板' + (trendPatterns.length + 1));
+            if (!name) return;
+            
+            trendPatterns.push({
+                name: name,
+                data: editorData.slice(), // 精确保存用户输入的数据
+                type: 'template'
+            });
+            
+            saveTrendList(); // 保存到本地
+            loadTrendList();
+            document.getElementById('editorInput').value = '';
+            clearEditor();
+            
+            alert('模板已保存！\n模板数据：' + input + '\n数据长度：' + input.length + '个\n匹配规则：模板末尾数字对应最新期，开头数字对应最旧期\n规则：1=中，0=未中\n例如"110"：最后一个0=最新期(未中)，中间1=上一期(中)，第一个1=上上期(中)');
+        }
+
+        function saveTrendList() {
+            localStorage.setItem('trendPatterns', JSON.stringify(trendPatterns));
+        }
+        
+        function loadTrendList() {
+            var list = document.getElementById('trendList');
+            if (trendPatterns.length === 0) {
+                list.innerHTML = '<div style="font-size:10px;color:#8b949e;text-align:center;padding:10px;">暂无保存的趋势图</div>';
+                return;
+            }
+            
+            list.innerHTML = '';
+            for (var i = 0; i < trendPatterns.length; i++) {
+                var item = document.createElement('div');
+                item.className = 'trend-item';
+                item.innerHTML = '<div style="display:flex;align-items:center;">' +
+                    '<canvas class="trend-preview" id="trendPreview' + i + '" width="60" height="30"></canvas>' +
+                    '<span class="trend-name' + (selectedTrendIdx === i ? ' selected' : '') + '" onclick="selectTrend(' + i + ')">' + trendPatterns[i].name + '</span>' +
+                    '</div>' +
+                    '<button class="trend-del" onclick="deleteTrend(' + i + ')">删除</button>';
+                list.appendChild(item);
+                
+                // 绘制缩略图
+                setTimeout((function(idx) {
+                    return function() {
+                        var pcanvas = document.getElementById('trendPreview' + idx);
+                        if (pcanvas) drawTrendThumbnail(pcanvas, trendPatterns[idx].data);
+                    };
+                })(i), 50);
+            }
+        }
+
+        function drawTrendThumbnail(canvas, data) {
+            var ctx = canvas.getContext('2d');
+            var w = canvas.width;
+            var h = canvas.height;
+            
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+            
+            if (data.length === 0) return;
+            
+            var cw = w / data.length;
+            ctx.strokeStyle = '#3366ff';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            var midY = h / 2;
+            for (var i = 0; i < data.length; i++) {
+                var x = i * cw + cw / 2;
+                var y = data[i] === 0 ? midY - 8 : midY + 8;
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        }
+
+        function selectTrend(idx) {
+            selectedTrendIdx = idx;
+            loadTrendList();
+            
+            // 显示选中趋势图的详细信息
+            var trend = trendPatterns[idx];
+            document.getElementById('editorInput').value = trend.data.join('');
+            editorData = trend.data.slice();
+            drawEditorPreview();
+        }
+
+        function deleteTrend(idx) {
+            if (!confirm('确定删除趋势图 "' + trendPatterns[idx].name + '"?')) return;
+            trendPatterns.splice(idx, 1);
+            if (selectedTrendIdx === idx) selectedTrendIdx = -1;
+            saveTrendList(); // 保存到本地
+            loadTrendList();
+        }
+
+        // ==================== 相似度匹配算法 ====================
+        function calcHitResults(numbers, drawData, posType) {
+            var set = {};
+            for (var i = 0; i < numbers.length; i++) set[numbers[i]] = true;
+            
+            var drawMap = {};
+            for (var i = 0; i < drawData.length; i++) {
+                var item = drawData[i];
+                if (item && item.period && item.num) {
+                    var target;
+                    if (posType === 'front') target = parseInt(item.num.substring(0, 3), 10);
+                    else if (posType === 'middle') target = parseInt(item.num.substring(1, 4), 10);
+                    else target = parseInt(item.num.substring(2, 5), 10);
+                    drawMap[item.period] = target;
+                }
+            }
+            
+            var result = [];
+            for (var i = drawData.length - 1; i >= 0; i--) {
+                var item = drawData[i];
+                if (item && item.period && drawMap[item.period] !== undefined) {
+                    result.push(set[drawMap[item.period]] ? 1 : 0);
+                } else {
+                    result.push(0);
+                }
+            }
+            return result;
+        }
+
+        function calcPatternScore(patternData, hitResults) {
+            if (patternData.length === 0 || hitResults.length === 0) return 0;
+            
+            // 使用滑动窗口对比
+            var patternLen = patternData.length;
+            var dataLen = hitResults.length;
+            
+            // 标准化：把patternData转为-1和1
+            var normalized = [];
+            for (var i = 0; i < patternLen; i++) {
+                normalized.push(patternData[i] === 0 ? 1 : -1);
+            }
+            
+            // 尝试不同的滑动位置
+            var bestScore = 0;
+            var startIdx = Math.max(0, dataLen - patternLen * 3);
+            var endIdx = dataLen;
+            
+            for (var offset = startIdx; offset < endIdx - patternLen + 1; offset++) {
+                var score = 0;
+                for (var i = 0; i < patternLen; i++) {
+                    var hitVal = hitResults[offset + i] === 1 ? 1 : -1;
+                    if (hitVal === normalized[i]) score++;
+                    else score--;
+                }
+                
+                // 归一化到0-100
+                var normalizedScore = (score / patternLen + 1) * 50;
+                bestScore = Math.max(bestScore, normalizedScore);
+            }
+            
+            return bestScore;
+        }
+
+        // ==================== 性能优化工具 ====================
+        var hitResultCache = {}; // 命中结果缓存
+        var maxIterations = 50; // 最大迭代次数限制
+        var timeoutThreshold = 30000; // 超时阈值（毫秒）
+        
+        function getCachedHitResults(group) {
+            var key = group.sort().join(',');
+            if (hitResultCache[key]) {
+                return hitResultCache[key];
+            }
+            var result = calcHitResults(group, drawData, posType);
+            hitResultCache[key] = result;
+            return result;
+        }
+        
+        function clearHitCache() {
+            hitResultCache = {};
+        }
+        
+        // 精确匹配 - 模板末尾对应最新期
+        function calcExactMatchScoreOptimized(patternData, hitResults) {
+            if (patternData.length === 0 || hitResults.length < patternData.length) return 0;
+            
+            var patternLen = patternData.length;
+            
+            // 模板末尾对应最新期，模板开头对应最旧期
+            // 例如模板"110"：
+            //   最后一个数字0 → 最新期 hitResults[0] = 未中
+            //   中间的数字1 → 上一期 hitResults[1] = 中
+            //   第一个数字1 → 上上期 hitResults[2] = 中
+            for (var i = 0; i < patternLen; i++) {
+                if (hitResults[i] !== patternData[patternLen - 1 - i]) {
+                    return 0; // 不匹配
+                }
+            }
+            
+            return 100; // 完全匹配
+        }
+        
+        // 相似度匹配 - 模板末尾对应最新期
+        function calcPatternScoreOptimized(patternData, hitResults) {
+            if (patternData.length === 0 || hitResults.length < patternData.length) return 0;
+            
+            var patternLen = patternData.length;
+            
+            // 模板末尾对应最新期，模板开头对应最旧期
+            var matchCount = 0;
+            for (var i = 0; i < patternLen; i++) {
+                if (hitResults[i] === patternData[patternLen - 1 - i]) {
+                    matchCount++;
+                }
+            }
+            
+            return (matchCount / patternLen) * 100;
+        }
+
+        function findBestMatchingGroup(groups, patternData, drawData, posType) {
+            var bestIdx = -1;
+            var bestScore = -1;
+            
+            for (var i = 0; i < groups.length; i++) {
+                var hitResults = getCachedHitResults(groups[i]);
+                var score = calcPatternScoreOptimized(patternData, hitResults);
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestIdx = i;
+                    
+                    // 提前终止：找到完美匹配
+                    if (bestScore >= 100) {
+                        break;
+                    }
+                }
+            }
+            
+            return { idx: bestIdx, score: bestScore };
+        }
+        
+        function findExactMatchingGroup(groups, patternData, drawData, posType) {
+            var bestIdx = -1;
+            var bestScore = -1;
+            
+            for (var i = 0; i < groups.length; i++) {
+                var hitResults = getCachedHitResults(groups[i]);
+                var score = calcExactMatchScoreOptimized(patternData, hitResults);
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestIdx = i;
+                    
+                    // 提前终止：找到完美匹配
+                    if (bestScore >= 100) {
+                        break;
+                    }
+                }
+            }
+            
+            return { idx: bestIdx, score: bestScore };
+        }
+        
+        function calcExactMatchScore(patternData, hitResults) {
+            if (patternData.length === 0 || hitResults.length === 0) return 0;
+            
+            var patternLen = patternData.length;
+            var dataLen = hitResults.length;
+            
+            var startIdx = Math.max(0, dataLen - patternLen * 3);
+            var endIdx = dataLen;
+            
+            for (var offset = startIdx; offset < endIdx - patternLen + 1; offset++) {
+                var match = true;
+                for (var i = 0; i < patternLen; i++) {
+                    if (hitResults[offset + i] !== patternData[i]) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match) {
+                    return 100;
+                }
+            }
+            
+            return 0;
+        }
+
+        // ==================== 相似度配置功能 ====================
+        function updateMatchMode() {
+            var mode = document.getElementById('matchMode').value;
+            var configDiv = document.getElementById('similarityConfig');
+            
+            if (mode === 'trend') {
+                configDiv.style.display = 'block';
+            } else {
+                configDiv.style.display = 'none';
+            }
+        }
+        
+        function setSimilarity(value) {
+            // 更新输入框
+            document.getElementById('similarityInput').value = value;
+            
+            // 更新预设按钮状态
+            var presets = document.getElementsByClassName('preset-btn');
+            for (var i = 0; i < presets.length; i++) {
+                presets[i].classList.remove('preset-active');
+            }
+            
+            // 找到对应按钮并激活
+            var activeBtn = document.querySelector('.preset-btn[onclick="setSimilarity(' + value + ')"]');
+            if (activeBtn) {
+                activeBtn.classList.add('preset-active');
+            }
+        }
+        
+        function onSimilarityInput() {
+            var input = document.getElementById('similarityInput');
+            var value = parseFloat(input.value);
+            
+            // 限制范围
+            if (value < 0) value = 0;
+            if (value > 100) value = 100;
+            input.value = value.toFixed(2);
+            
+            // 取消所有预设按钮的选中状态
+            var presets = document.getElementsByClassName('preset-btn');
+            for (var i = 0; i < presets.length; i++) {
+                presets[i].classList.remove('preset-active');
+            }
+        }
+        
+        function getSimilarityThreshold() {
+            var mode = document.getElementById('matchMode').value;
+            if (mode === 'template') {
+                return 100;
+            }
+            return parseFloat(document.getElementById('similarityInput').value) || 90;
+        }
+        
+        function toggleSimilarityInput(rowIndex) {
+            var select = document.getElementById('similarityType' + rowIndex);
+            var input = document.getElementById('similarityValue' + rowIndex);
+            
+            if (select.value === 'custom') {
+                input.disabled = false;
+            } else {
+                input.disabled = true;
+            }
+        }
+        
+        function getRowSimilarityThreshold(rowIndex) {
+            var type = document.getElementById('similarityType' + rowIndex).value;
+            
+            if (type === 'custom') {
+                return parseFloat(document.getElementById('similarityValue' + rowIndex).value) || 90;
+            }
+            
+            return getSimilarityThreshold();
+        }
+
+        // ==================== 分割配置保存与加载 ====================
+        function loadSplitConfig() {
+            var saved = localStorage.getItem('splitConfig');
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch (e) {
+                    return null;
+                }
+            }
+            return null;
+        }
+        
+        function saveSplitConfig() {
+            var count = parseInt(document.getElementById('splitCount').value);
+            var config = {
+                splitMode: document.getElementById('splitMode').value,
+                matchMode: document.getElementById('matchMode').value,
+                splitCount: document.getElementById('splitCount').value,
+                types: [],
+                trends: [],
+                similarityTypes: [],
+                similarityValues: []
+            };
+            
+            for (var i = 1; i <= count; i++) {
+                config.types.push(document.getElementById('splitType' + i).value);
+                config.trends.push(document.getElementById('splitTrend' + i).value);
+                config.similarityTypes.push(document.getElementById('similarityType' + i).value);
+                config.similarityValues.push(document.getElementById('similarityValue' + i).value);
+            }
+            
+            localStorage.setItem('splitConfig', JSON.stringify(config));
+        }
+        
+        // ==================== 分割设置弹窗 ====================
+        function openSplitConfig() {
+            if (trendPatterns.length === 0) {
+                alert('请先在K线编辑器中创建并保存至少一个趋势图');
+                return;
+            }
+            
+            if (drawData.length < 30) {
+                alert('开奖数据不足30期，无法进行智能分割');
+                return;
+            }
+            
+            // 加载上次保存的配置
+            var savedConfig = loadSplitConfig();
+            if (savedConfig) {
+                if (savedConfig.splitMode) {
+                    document.getElementById('splitMode').value = savedConfig.splitMode;
+                }
+                document.getElementById('matchMode').value = savedConfig.matchMode;
+                document.getElementById('splitCount').value = savedConfig.splitCount;
+            }
+            
+            document.getElementById('splitModal').classList.add('show');
+            updateSplitRows(savedConfig);
+        }
+
+        function closeSplitModal() {
+            document.getElementById('splitModal').classList.remove('show');
+        }
+
+        function updateSplitRows(savedConfig) {
+            var count = parseInt(document.getElementById('splitCount').value);
+            var container = document.getElementById('splitConfigContainer');
+            container.innerHTML = '';
+            
+            for (var i = 1; i <= count; i++) {
+                var row = document.createElement('div');
+                row.className = 'split-row';
+                
+                var trendOptions = '<option value="">--选择趋势图--</option>';
+                for (var j = 0; j < trendPatterns.length; j++) {
+                    var trendSelected = '';
+                    if (savedConfig && savedConfig.trends && savedConfig.trends[i-1] != null) {
+                        trendSelected = savedConfig.trends[i-1] == j ? ' selected' : '';
+                    }
+                    trendOptions += '<option value="' + j + '"' + trendSelected + '>' + trendPatterns[j].name + '</option>';
+                }
+                
+                // 根据分割次数和顺序设置默认选中项
+                var defaultType = '5'; // 默认5中4
+                if (savedConfig && savedConfig.types && savedConfig.types[i-1] != null) {
+                    defaultType = savedConfig.types[i-1];
+                } else {
+                    if (count === 1) {
+                        // 1次分割：默认8中7
+                        if (i === 1) defaultType = '8';
+                    } else if (count === 2) {
+                        // 2次分割：第一次8中7，第二次4中3
+                        if (i === 1) defaultType = '8';
+                        if (i === 2) defaultType = '4';
+                    }
+                }
+                
+                var typeOptions = '';
+                var types = [3, 4, 5, 6, 7, 8, 9, 10];
+                for (var t = 0; t < types.length; t++) {
+                    var val = types[t];
+                    var selected = val == defaultType ? ' selected' : '';
+                    typeOptions += '<option value="' + val + '"' + selected + '>' + val + '中' + (val - 1) + '</option>';
+                }
+                
+                // 相似度配置
+                var simType = 'auto';
+                var simValue = '90';
+                var simDisabled = ' disabled';
+                if (savedConfig && savedConfig.similarityTypes && savedConfig.similarityTypes[i-1] != null) {
+                    simType = savedConfig.similarityTypes[i-1];
+                    simValue = savedConfig.similarityValues[i-1];
+                    simDisabled = simType === 'auto' ? ' disabled' : '';
+                }
+                
+                row.innerHTML = 
+                    '<div class="split-num">第' + i + '次</div>' +
+                    '<div class="split-selects">' +
+                    '<select id="splitType' + i + '" class="config-select">' +
+                    typeOptions +
+                    '</select>' +
+                    '<select id="splitTrend' + i + '" class="config-trend">' +
+                    trendOptions +
+                    '</select>' +
+                    '<div class="similarity-config" id="similarityRow' + i + '">' +
+                    '<select id="similarityType' + i + '" class="similarity-select" onchange="toggleSimilarityInput(' + i + ')">' +
+                    '<option value="auto"' + (simType === 'auto' ? ' selected' : '') + '>跟随模式</option>' +
+                    '<option value="custom"' + (simType === 'custom' ? ' selected' : '') + '>自定义</option>' +
+                    '</select>' +
+                    '<input type="number" id="similarityValue' + i + '" class="similarity-input-small" value="' + simValue + '" min="0" max="100" step="0.01"' + simDisabled + '>' +
+                    '<span style="color:#8b949e;font-size:10px;">%</span>' +
+                    '</div>' +
+                    '</div>';
+                
+                container.appendChild(row);
+            }
+        }
+
+
+        // ==================== 自动分割流程 ====================
+        var autoSplitConfig = {}; // 保存当前分割配置，便于重试
+        var retryCount = 0; // 重试次数计数器
+        var globalStartTime = 0; // 全局开始时间
+        var stopSplit = false; // 停止分割标志位
+        var MAX_ATTEMPTS = 3000; // 第二次分割最大尝试次数
+        var currentSplitMode = 'auto'; // 当前分割模式
+        var manualFirstResult = null; // 手动模式下第一次分割的结果
+        
+        function updateSplitModeUI() {
+            var mode = document.getElementById('splitMode').value;
+            currentSplitMode = mode;
+        }
+        
+        function stopAutoSplit() {
+            stopSplit = true;
+            console.log('分割已停止');
+        }
+        
+        function startAutoSplit() {
+            // 重置停止标志
+            stopSplit = false;
+            
+            // 获取分割模式
+            currentSplitMode = document.getElementById('splitMode').value;
+            
+            // 保存当前配置
+            saveSplitConfig();
+            
+            var count = parseInt(document.getElementById('splitCount').value);
+            var matchMode = document.getElementById('matchMode').value;
+            var splitResults = [];
+            var currentNumbers = null; // 当前分割的号码集
+            
+            // 重置计数器
+            retryCount = 0;
+            globalStartTime = Date.now();
+            
+            // 清空缓存
+            clearHitCache();
+            
+            // 保存当前配置
+            autoSplitConfig = {
+                count: count,
+                matchMode: matchMode,
+                types: [],
+                trendIdxs: [],
+                thresholds: [] // 每行的相似度阈值
+            };
+            
+            console.log('智能分割开始 - 模式:', matchMode);
+            
+            // 验证配置
+            for (var i = 1; i <= count; i++) {
+                var trendIdx = parseInt(document.getElementById('splitTrend' + i).value);
+                autoSplitConfig.types.push(parseInt(document.getElementById('splitType' + i).value));
+                autoSplitConfig.trendIdxs.push(trendIdx);
+                autoSplitConfig.thresholds.push(getRowSimilarityThreshold(i));
+                
+                if (isNaN(trendIdx) || trendIdx < 0) {
+                    alert('第' + i + '次分割必须选择一个趋势图');
+                    return;
+                }
+            }
+            
+            closeSplitModal();
+            
+            // 执行分割流程
+            executeSplit(splitResults, currentNumbers, 1);
+        }
+        
+        function executeSplit(splitResults, currentNumbers, round) {
+            var count = autoSplitConfig.count;
+            
+            if (round > count) {
+                var elapsed = (Date.now() - globalStartTime) / 1000;
+                console.log('分割完成，耗时:', elapsed.toFixed(2), '秒');
+                displayAutoResult(splitResults);
+                return;
+            }
+            
+            var n = autoSplitConfig.types[round - 1];
+            var trendIdx = autoSplitConfig.trendIdxs[round - 1];
+            var minThreshold = autoSplitConfig.thresholds[round - 1];
+            var pattern = trendPatterns[trendIdx];
+            
+            var attempts = 0;
+            
+            // 使用异步递归避免阻塞主线程
+            function searchOnce() {
+                // 检查是否需要停止
+                if (stopSplit) {
+                    var resultContainer = document.getElementById('autoResult');
+                    resultContainer.innerHTML = 
+                        '<div style="color:#f0883e;padding:15px;text-align:center;">' +
+                        '<div style="font-weight:bold;margin-bottom:10px;">分割已停止</div>' +
+                        '<div style="font-size:12px;color:#8b949e;margin-bottom:8px;">已尝试 ' + attempts + ' 次</div>' +
+                        '<button class="btn btn-green" onclick="retryAutoSplit()">立即重试</button>' +
+                        '<button class="btn btn-gray" style="margin-left:10px;" onclick="openSplitConfig()">修改配置</button>' +
+                        '</div>';
+                    return;
+                }
+                
+                attempts++;
+                retryCount = attempts;
+                
+                // 检查第二次分割是否超过最大尝试次数
+                if (round >= 2 && attempts > MAX_ATTEMPTS) {
+                    console.log('第' + round + '次分割超过', MAX_ATTEMPTS, '次尝试，重新开始第1次分割');
+                    
+                    // 清空当前轮次及之后的结果
+                    splitResults.splice(round - 1, splitResults.length - (round - 1));
+                    
+                    // 更新状态显示
+                    var resultContainer = document.getElementById('autoResult');
+                    resultContainer.innerHTML = 
+                        '<div style="color:#f0883e;padding:15px;text-align:center;">' +
+                        '<div style="font-weight:bold;margin-bottom:10px;">第' + round + '次分割超时，重新分割第1次...</div>' +
+                        '<div style="font-size:12px;color:#8b949e;margin-bottom:8px;">已尝试 ' + attempts + ' 次，正在重新分割...</div>' +
+                        '<div class="retry-status" style="justify-content:center;margin-bottom:15px;">' +
+                        '<div class="retry-dot"></div>' +
+                        '<span>重新分割中...</span>' +
+                        '</div>' +
+                        '<button class="btn btn-gray" onclick="stopAutoSplit()">停止并修改配置</button>' +
+                        '</div>';
+                    
+                    // 清空缓存并重新从第1次开始
+                    clearHitCache();
+                    executeSplit(splitResults, null, 1);
+                    return;
+                }
+                
+                var grps = currentNumbers === null ? createGroups(n, null) : createGroups(n, currentNumbers);
+                var best = minThreshold >= 100 ? 
+                    findExactMatchingGroup(grps, pattern.data, drawData, posType) :
+                    findBestMatchingGroup(grps, pattern.data, drawData, posType);
+                
+                // 更新状态显示
+                var resultContainer = document.getElementById('autoResult');
+                resultContainer.innerHTML = 
+                    '<div style="color:#f0883e;padding:15px;text-align:center;">' +
+                    '<div style="font-weight:bold;margin-bottom:10px;">第' + round + '次分割中...</div>' +
+                    '<div style="font-size:12px;color:#8b949e;margin-bottom:8px;">正在查找符合模板的号码组...</div>' +
+                    '<div class="retry-status" style="justify-content:center;margin-bottom:15px;">' +
+                    '<div class="retry-dot"></div>' +
+                    '<span>已尝试 <span class="retry-count">' + attempts + '</span> 次</span>' +
+                    '</div>' +
+                    '<button class="btn btn-gray" onclick="stopAutoSplit()">停止并修改配置</button>' +
+                    '</div>';
+                
+                // 找到匹配
+                if (best && best.score >= minThreshold) {
+                    splitResults.push({
+                        round: round,
+                        type: n + '中' + (n - 1),
+                        trendName: pattern.name,
+                        score: best.score,
+                        group: grps[best.idx],
+                        allGroups: grps, // 保存所有分组
+                        bestIdx: best.idx, // 保存选中的索引
+                        attempts: attempts,
+                        threshold: minThreshold
+                    });
+                    
+                    // 手动模式下，第一次分割完成后停止
+                    if (currentSplitMode === 'manual' && round === 1) {
+                        manualFirstResult = splitResults[0]; // 保存第一次分割结果
+                        displayManualFirstResult(splitResults);
+                        return;
+                    }
+                    
+                    executeSplit(splitResults, grps[best.idx], round + 1);
+                    return;
+                }
+                
+                // 继续搜索（使用setTimeout让出主线程）
+                setTimeout(searchOnce, 0);
+            }
+            
+            // 开始搜索
+            searchOnce();
+        }
+        
+        function retryAutoSplit() {
+            // 使用保存的配置重新执行分割
+            var splitResults = [];
+            executeSplit(splitResults, null, 1);
+        }
+        
+        // 手动模式下显示第一次分割结果
+        function displayManualFirstResult(results) {
+            var container = document.getElementById('autoResult');
+            var r = results[0];
+            
+            var html = '<div style="background:#0d1117;border-radius:6px;padding:10px;margin-bottom:10px;border:1px solid #30363d;position:relative;">' +
+                '<div style="position:absolute;top:8px;right:8px;background:#f0883e;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:bold;">手动模式</div>' +
+                '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">' +
+                '<span style="font-weight:bold;color:#58a6ff;">第' + r.round + '次分割: ' + r.type + '</span>' +
+                '<span style="color:#8b949e;font-size:10px;">参考: ' + r.trendName + '</span>' +
+                '</div>' +
+                '<div class="sim-score">相似度: ' + r.score.toFixed(1) + '%</div>' +
+                '<div style="margin-top:6px;font-size:10px;color:#8b949e;">提取号码数: ' + r.group.length + '个</div>' +
+                '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #30363d;">' +
+                '<div style="color:#238636;font-weight:bold;margin-bottom:4px;">选中结果（可粘贴修改）:</div>' +
+                '<textarea id="resultText_0" class="editor-input" style="height:80px;">' + r.group.map(fmtNum).join(' ') + '</textarea>' +
+                '<div style="display:flex;justify-content:space-between;margin-top:8px;">' +
+                '<button id="copyButton_0" class="btn btn-blue">复制号码</button>' +
+                '<button id="retryFirstSplitBtn" class="btn btn-orange">手动分割</button>' +
+                '<button id="pasteButton_0" class="btn btn-green">粘贴号码</button>' +
+                '</div>' +
+                '<div id="copyStatus_0" style="margin-top:6px;font-size:10px;color:#8b949e;"></div>' +
+                '</div>' +
+                '<div style="margin-top:12px;padding-top:12px;border-top:2px solid #f0883e;">' +
+                '<div style="color:#f0883e;font-weight:bold;margin-bottom:8px;text-align:center;">手动触发后续分割</div>' +
+                '<div style="text-align:center;margin-bottom:8px;font-size:11px;color:#8b949e;">修改上方号码后，点击下方按钮继续分割</div>' +
+                '<div style="display:flex;justify-content:center;gap:10px;">' +
+                '<button id="manualSplitBtn" class="btn btn-orange" style="font-size:14px;padding:10px 20px;">开始手动分割</button>' +
+                '</div>' +
+                '<div id="manualSplitStatus" style="margin-top:8px;font-size:10px;color:#8b949e;text-align:center;"></div>' +
+                '</div>' +
+                '</div>';
+            
+            container.innerHTML = html;
+            
+            window.splitResults = results;
+            
+            setTimeout(function() {
+                // 绑定复制按钮
+                var copyBtn = document.getElementById('copyButton_0');
+                if (copyBtn) {
+                    copyBtn.onclick = function() {
+                        var text = document.getElementById('resultText_0').value;
+                        var count = text.split(/\s+/).filter(function(n) { return n; }).length;
+                        copyToClipboard(text, count, 0);
+                    };
+                }
+                
+                // 绑定粘贴按钮
+                var pasteBtn = document.getElementById('pasteButton_0');
+                if (pasteBtn) {
+                    pasteBtn.onclick = function() {
+                        var textarea = document.getElementById('resultText_0');
+                        if (textarea) {
+                            navigator.clipboard.readText().then(function(text) {
+                                textarea.value = text;
+                                var statusEl = document.getElementById('copyStatus_0');
+                                if (statusEl) {
+                                    statusEl.textContent = '✓ 粘贴成功！';
+                                    statusEl.style.color = '#238636';
+                                    setTimeout(function() {
+                                        statusEl.textContent = '';
+                                    }, 2000);
+                                }
+                            }).catch(function(err) {
+                                var statusEl = document.getElementById('copyStatus_0');
+                                if (statusEl) {
+                                    statusEl.textContent = '粘贴失败，请手动粘贴';
+                                    statusEl.style.color = '#f85149';
+                                }
+                            });
+                        }
+                    };
+                }
+                
+                // 绑定重试第一次分割按钮
+                var retryBtn = document.getElementById('retryFirstSplitBtn');
+                if (retryBtn) {
+                    retryBtn.onclick = function() {
+                        var statusEl = document.getElementById('copyStatus_0');
+                        if (statusEl) {
+                            statusEl.textContent = '正在重新执行第一次分割...';
+                            statusEl.style.color = '#f0883e';
+                        }
+                        // 清除当前结果，重新执行第一次分割
+                        document.getElementById('autoResult').innerHTML = '';
+                        executeSplit([], null, 1);
+                    };
+                }
+                
+                // 绑定手动分割按钮
+                var manualBtn = document.getElementById('manualSplitBtn');
+                if (manualBtn) {
+                    manualBtn.onclick = function() {
+                        startManualSecondSplit();
+                    };
+                }
+            }, 100);
+        }
+        
+        // 手动触发后续分割
+        function startManualSecondSplit() {
+            var textarea = document.getElementById('resultText_0');
+            if (!textarea) {
+                alert('未找到号码输入框');
+                return;
+            }
+            
+            var text = textarea.value.trim();
+            if (!text) {
+                alert('请先输入或粘贴号码');
+                return;
+            }
+            
+            // 解析号码
+            var numbers = text.split(/\s+/).filter(function(n) { return n; }).map(function(n) {
+                return parseInt(n, 10);
+            }).filter(function(n) { return !isNaN(n) && n >= 0 && n <= 999; });
+            
+            if (numbers.length < 10) {
+                alert('号码数量不足，至少需要10个号码');
+                return;
+            }
+            
+            // 显示状态
+            var statusEl = document.getElementById('manualSplitStatus');
+            if (statusEl) {
+                statusEl.textContent = '正在执行后续分割...';
+                statusEl.style.color = '#58a6ff';
+            }
+            
+            // 重置停止标志
+            stopSplit = false;
+            
+            // 清空缓存
+            clearHitCache();
+            
+            // 更新第一次分割结果为用户粘贴的号码
+            manualFirstResult = {
+                round: 1,
+                type: autoSplitConfig.types[0],
+                group: numbers,
+                score: 100,
+                trendName: '手动输入',
+                bestIdx: 0,
+                allGroups: [numbers]
+            };
+            
+            // 执行后续分割（从第2轮开始）
+            var splitResults = [manualFirstResult];
+            executeSplit(splitResults, numbers, 2);
+        }
+
+        function displayAutoResult(results) {
+            var container = document.getElementById('autoResult');
+            var html = '';
+            
+            for (var i = 0; i < results.length; i++) {
+                var r = results[i];
+                var isLast = i === results.length - 1;
+                var isFirst = i === 0;
+                
+                html += '<div style="background:#0d1117;border-radius:6px;padding:10px;margin-bottom:10px;border:1px solid #30363d;">' +
+                    '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">' +
+                    '<span style="font-weight:bold;color:#58a6ff;">第' + r.round + '次分割: ' + r.type + '</span>' +
+                    '<span style="color:#8b949e;font-size:10px;">参考: ' + r.trendName + '</span>' +
+                    '</div>' +
+                    '<div class="sim-score">相似度: ' + r.score.toFixed(1) + '%</div>' +
+                    '<div style="margin-top:6px;font-size:10px;color:#8b949e;">提取号码数: ' + r.group.length + '个</div>';
+                
+                // 显示选中的号码组
+                html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #30363d;">' +
+                    '<div style="color:#238636;font-weight:bold;margin-bottom:4px;">' + (isLast ? '最终结果' : (isFirst ? '选中结果（可粘贴修改）' : '选中结果')) + ':</div>' +
+                    '<textarea id="resultText_' + i + '" class="editor-input" style="height:60px;">' + r.group.map(fmtNum).join(' ') + '</textarea>' +
+                    '<div style="display:flex;justify-content:space-between;margin-top:8px;">' +
+                    '<button id="copyButton_' + i + '" class="btn btn-blue">复制号码</button>';
+                
+                if (isLast) {
+                    html += '<button id="godButton" class="btn-god">神</button>';
+                } else if (isFirst) {
+                    // 第一次分割：添加粘贴按钮
+                    html += '<button id="pasteButton_' + i + '" class="btn btn-green">粘贴号码</button>';
+                }
+                
+                html += '</div>' +
+                    '<div id="copyStatus_' + i + '" style="margin-top:6px;font-size:10px;color:#8b949e;"></div>' +
+                    '</div>';
+                
+                // 第一次分割不显示其他号码组，只显示提示信息
+                if (isFirst) {
+                    html += '<div style="margin-top:8px;font-size:10px;color:#8b949e;text-align:center;">' +
+                        '如需使用其他号码组，请手动复制后粘贴到上方文本框' +
+                        '</div>';
+                }
+                
+                // 非第一次分割显示其他号码组
+                if (!isFirst && r.allGroups && r.allGroups.length > 1) {
+                    html += '<div style="margin-top:12px;padding-top:12px;border-top:2px solid #30363d;">' +
+                        '<div style="color:#f0883e;font-weight:bold;margin-bottom:8px;">其他号码组 (' + (r.allGroups.length - 1) + '组):</div>';
+                    
+                    for (var j = 0; j < r.allGroups.length; j++) {
+                        if (j === r.bestIdx) continue;
+                        
+                        var groupIdx = j < r.bestIdx ? j + 1 : j;
+                        html += '<div style="background:#161b22;border-radius:6px;padding:8px;margin-bottom:8px;">' +
+                            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+                            '<span style="color:#8b949e;font-size:12px;">号码组 ' + groupIdx + '</span>' +
+                            '<span style="color:#8b949e;font-size:10px;">' + r.allGroups[j].length + '个号码</span>' +
+                            '</div>' +
+                            '<textarea id="otherGroupText_' + i + '_' + j + '" class="editor-input" readonly style="height:50px;font-size:11px;">' + r.allGroups[j].map(fmtNum).join(' ') + '</textarea>' +
+                            '<button id="copyOtherGroup_' + i + '_' + j + '" class="btn btn-gray btn-small" style="margin-top:6px;">复制</button>' +
+                            '</div>';
+                    }
+                    
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+            }
+            
+            container.innerHTML = html;
+            
+            window.finalResult = results[results.length - 1].group.map(fmtNum);
+            window.splitResults = results; // 保存所有分割结果供粘贴使用
+            
+            setTimeout(function() {
+                // 绑定每次分割的复制按钮
+                for (var i = 0; i < results.length; i++) {
+                    (function(idx) {
+                        var btn = document.getElementById('copyButton_' + idx);
+                        if (btn) {
+                            btn.onclick = function() {
+                                var text = document.getElementById('resultText_' + idx).textContent;
+                                var count = results[idx].group.length;
+                                copyToClipboard(text, count, idx);
+                            };
+                        }
+                        
+                        // 绑定其他组的复制按钮
+                        var r = results[idx];
+                        if (r.allGroups) {
+                            for (var j = 0; j < r.allGroups.length; j++) {
+                                if (j === r.bestIdx) continue;
+                                var copyBtn = document.getElementById('copyOtherGroup_' + idx + '_' + j);
+                                if (copyBtn) {
+                                    (function(jdx) {
+                                        copyBtn.onclick = function() {
+                                            var text = document.getElementById('otherGroupText_' + idx + '_' + jdx).textContent;
+                                            var count = r.allGroups[jdx].length;
+                                            copyToClipboard(text, count, idx);
+                                        };
+                                    })(j);
+                                }
+                            }
+                        }
+                    })(i);
+                }
+                
+                // 绑定神按钮
+                var godBtn = document.getElementById('godButton');
+                if (godBtn) {
+                    godBtn.onclick = function() {
+                        retryAutoSplit();
+                    };
+                }
+                
+                // 绑定第一次分割的粘贴按钮
+                var pasteBtn = document.getElementById('pasteButton_0');
+                if (pasteBtn) {
+                    pasteBtn.onclick = function() {
+                        var textarea = document.getElementById('resultText_0');
+                        if (textarea) {
+                            navigator.clipboard.readText().then(function(text) {
+                                textarea.value = text;
+                                var statusEl = document.getElementById('copyStatus_0');
+                                if (statusEl) {
+                                    statusEl.textContent = '✓ 粘贴成功！';
+                                    statusEl.style.color = '#238636';
+                                    setTimeout(function() {
+                                        statusEl.textContent = '';
+                                    }, 2000);
+                                }
+                            }).catch(function(err) {
+                                var statusEl = document.getElementById('copyStatus_0');
+                                if (statusEl) {
+                                    statusEl.textContent = '粘贴失败，请手动粘贴';
+                                    statusEl.style.color = '#f85149';
+                                }
+                            });
+                        }
+                    };
+                }
+            }, 100);
+        }
+
+        function copyFinalResult(numbers) {
+            var text = numbers.join(' ');
+            copyToClipboard(text, numbers.length);
+        }
+
+        function copyToClipboard(text, count, resultIdx) {
+            var statusId = resultIdx !== undefined ? 'copyStatus_' + resultIdx : 'copyStatus';
+            var statusEl = document.getElementById(statusId);
+            
+            var tempTextarea = document.createElement('textarea');
+            tempTextarea.value = text;
+            tempTextarea.style.position = 'fixed';
+            tempTextarea.style.left = '-9999px';
+            document.body.appendChild(tempTextarea);
+            
+            try {
+                tempTextarea.select();
+                tempTextarea.setSelectionRange(0, tempTextarea.value.length);
+                
+                var successful = document.execCommand('copy');
+                if (successful) {
+                    if (statusEl) {
+                        statusEl.textContent = '✓ 复制成功！';
+                        statusEl.style.color = '#238636';
+                    }
+                    setTimeout(function() {
+                        if (statusEl) {
+                            statusEl.textContent = '';
+                        }
+                    }, 2000);
+                } else {
+                    throw new Error('复制失败');
+                }
+            } catch (err) {
+                if (statusEl) {
+                    statusEl.textContent = '请手动选中并复制文本';
+                    statusEl.style.color = '#f85149';
+                }
+            } finally {
+                document.body.removeChild(tempTextarea);
+            }
+        }
+
+        // ==================== 手动输入和文本导入 ====================
+        function addManualData() {
+            console.log('addManualData called');
+            var input = document.getElementById('manualInput').value.trim();
+            console.log('Input value:', input);
+            if (!input) {
+                alert('请输入数据');
+                return;
+            }
+            
+            var parts = input.split(/\s+/);
+            if (parts.length < 2) {
+                alert('格式错误！正确格式：20260620-0173 12345');
+                return;
+            }
+            
+            var issue = parts[0];
+            var num = parts[1];
+            
+            if (!/^\d{8}-\d{4}$/.test(issue)) {
+                alert('期号格式错误！正确格式：20260620-0173');
+                return;
+            }
+            
+            if (!/^\d{5}$/.test(num)) {
+                alert('号码格式错误！必须是5位数字');
+                return;
+            }
+            
+            var existing = drawData.find(function(d) { return d.issue === issue; });
+            if (existing) {
+                alert('该期号已存在！');
+                return;
+            }
+            
+            drawData.push({ period: issue, issue: issue, num: num });
+            drawData.sort(function(a, b) { return a.period.localeCompare(b.period); });
+            if (drawData.length > 500) {
+                drawData = drawData.slice(drawData.length - 500);
+            }
+            
+            document.getElementById('drawInput').value = formatDrawData(drawData);
+            document.getElementById('drawCount').textContent = drawData.length + '期';
+            saveDrawData();
+            
+            document.getElementById('manualInput').value = '';
+            alert('添加成功！');
+        }
+        
+        function clearDrawData() {
+            if (!confirm('确定要清空所有开奖数据吗？此操作不可恢复！')) {
+                return;
+            }
+            
+            drawData = [];
+            document.getElementById('drawInput').value = '';
+            document.getElementById('drawCount').textContent = '0期';
+            saveDrawData();
+            
+            alert('数据已清空！');
+        }
+        
+        function importDrawDataFile() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt,.dat';
+            input.onchange = function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+                
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        var text = event.target.result;
+                        var lines = text.split('\n');
+                        var added = 0;
+                        
+                        for (var i = 0; i < lines.length; i++) {
+                            var line = lines[i].trim();
+                            if (!line) continue;
+                            
+                            var parts = line.split(/\s+/);
+                            if (parts.length < 2) continue;
+                            
+                            var issue = parts[0];
+                            var num = parts[1];
+                            
+                            if (!/^\d{8}-\d{4}$/.test(issue)) continue;
+                            if (!/^\d{5}$/.test(num)) continue;
+                            
+                            var existing = drawData.find(function(d) { return d.period === issue; });
+                            if (existing) continue;
+                            
+                            drawData.push({ period: issue, num: num });
+                            added++;
+                        }
+                        
+                        drawData.sort(function(a, b) { return b.period.localeCompare(a.period); });
+                        drawData = drawData.slice(0, 500);
+                        
+                        document.getElementById('drawInput').value = formatDrawData(drawData);
+                        document.getElementById('drawCount').textContent = drawData.length + '期';
+                        saveDrawData();
+                        
+                        alert('导入完成！新增 ' + added + ' 条数据');
+                    } catch (err) {
+                        alert('解析失败：' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+        
+        function importTextData() {
+            console.log('importTextData called');
+            var input = document.getElementById('manualInput').value.trim();
+            console.log('Input value:', input);
+            if (!input) {
+                alert('请粘贴数据');
+                return;
+            }
+            
+            var lines = input.split('\n');
+            console.log('Lines count:', lines.length);
+            var added = 0;
+            
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (!line) continue;
+                
+                var parts = line.split(/\s+/);
+                if (parts.length < 2) continue;
+                
+                var issue = parts[0];
+                var num = parts[1];
+                
+                if (!/^\d{8}-\d{4}$/.test(issue)) continue;
+                if (!/^\d{5}$/.test(num)) continue;
+                
+                var existing = drawData.find(function(d) { return d.period === issue; });
+                if (existing) continue;
+                
+                drawData.push({ period: issue, num: num });
+                added++;
+            }
+            
+            drawData.sort(function(a, b) { return b.period.localeCompare(a.period); });
+            drawData = drawData.slice(0, 500);
+            
+            document.getElementById('drawInput').value = formatDrawData(drawData);
+            document.getElementById('drawCount').textContent = drawData.length + '期';
+            saveDrawData();
+            
+            document.getElementById('manualInput').value = '';
+            alert('导入完成！新增 ' + added + ' 条数据');
+        }
+        
+        // ==================== 趋势图导出导入 ====================
+        function exportTrendPatterns() {
+            if (trendPatterns.length === 0) {
+                alert('没有可导出的趋势图');
+                return;
+            }
+            
+            var data = JSON.stringify(trendPatterns, null, 2);
+            var blob = new Blob([data], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'trend_patterns_' + new Date().toISOString().split('T')[0] + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert('趋势图已导出！');
+        }
+        
+        function importTrendPatterns() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+                
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        var data = JSON.parse(event.target.result);
+                        if (!Array.isArray(data)) {
+                            alert('数据格式错误！');
+                            return;
+                        }
+                        
+                        for (var i = 0; i < data.length; i++) {
+                            var pattern = data[i];
+                            var existing = trendPatterns.find(function(t) { return t.name === pattern.name; });
+                            if (!existing && pattern.name && pattern.data) {
+                                trendPatterns.push(pattern);
+                            }
+                        }
+                        
+                        saveTrendList();
+                        loadTrendList();
+                        
+                        alert('导入完成！新增 ' + data.length + ' 个趋势图');
+                    } catch (err) {
+                        alert('解析失败：' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // ==================== 外部数据接入 ====================
+        function fetchExternalData() {
+            var url = document.getElementById('apiUrl').value.trim();
+            var statusEl = document.getElementById('apiStatus');
+            var refreshStatusEl = document.getElementById('refreshStatus');
+            
+            console.log('[' + new Date().toLocaleTimeString() + '] 开始获取API数据...');
+            
+            if (!url) {
+                if (statusEl) {
+                    statusEl.textContent = '请输入API地址';
+                    statusEl.style.color = '#f85149';
+                }
+                return;
+            }
+            
+            if (statusEl) {
+                statusEl.textContent = '正在获取数据...';
+                statusEl.style.color = '#58a6ff';
+            }
+            
+            var proxyUrl = 'http://localhost:8888/?url=' + encodeURIComponent(url);
+            console.log('[' + new Date().toLocaleTimeString() + '] 请求URL:', proxyUrl);
+            
+            fetch(proxyUrl, {
+                method: 'GET'
+            })
+                .then(function(response) {
+                    console.log('[' + new Date().toLocaleTimeString() + '] 响应状态:', response.status);
+                    if (!response.ok) {
+                        throw new Error('网络请求失败: ' + response.status);
+                    }
+                    return response.text();
+                })
+                .then(function(text) {
+                    try {
+                        console.log('[' + new Date().toLocaleTimeString() + '] API原始数据长度:', text.length);
+                        console.log('[' + new Date().toLocaleTimeString() + '] API原始数据:', text.substring(0, 500) + (text.length > 500 ? '...' : ''));
+                        var data;
+                        if (url.toLowerCase().endsWith('.xml')) {
+                            data = parseXML(text);
+                        } else {
+                            data = JSON.parse(text);
+                        }
+                        console.log('[' + new Date().toLocaleTimeString() + '] 解析后数据:', data);
+                        
+                        var prevLength = drawData.length;
+                        parseAndLoadExternalData(data);
+                        var newLength = drawData.length;
+                        console.log('[' + new Date().toLocaleTimeString() + '] 数据加载完成，新增:', newLength - prevLength, '条，总数:', newLength);
+                        
+                        updateCurrentDrawDisplay(); // 更新当期开奖号码显示
+                        console.log('fetchExternalData完成，清空缓存并刷新图表...');
+                        clearHitCache(); // 关键：清空命中缓存，确保使用最新数据
+                        forceRefreshAllCharts(); // 关键：强制刷新K线图表
+                        if (statusEl) {
+                            statusEl.textContent = '数据获取成功！';
+                            statusEl.style.color = '#238636';
+                        }
+                        setTimeout(function() {
+                            if (statusEl) statusEl.textContent = '';
+                        }, 3000);
+                    } catch (e) {
+                        console.error('[' + new Date().toLocaleTimeString() + '] 数据解析失败:', e);
+                        throw new Error('数据解析失败: ' + e.message);
+                    }
+                })
+                .catch(function(error) {
+                    console.error('[' + new Date().toLocaleTimeString() + '] 获取数据失败:', error);
+                    if (statusEl) {
+                        statusEl.textContent = '获取失败: ' + error.message;
+                        statusEl.style.color = '#f85149';
+                    }
+                    // 如果获取失败，保持现有数据不变
+                    if (drawData.length > 0) {
+                        document.getElementById('drawInput').value = formatDrawData(drawData);
+                        document.getElementById('drawCount').textContent = drawData.length + '期';
+                        
+                        var dataStatusEl = document.getElementById('dataStatus');
+                        if (dataStatusEl) {
+                            dataStatusEl.textContent = '本地存储: ' + drawData.length + '期 | 最大: 500期';
+                        }
+                    }
+                });
+        }
+
+        function parseXML(xmlText) {
+            var parser = new DOMParser();
+            var xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+            
+            var items = xmlDoc.getElementsByTagName('row');
+            var results = [];
+            
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                var result = {};
+                
+                for (var j = 0; j < item.attributes.length; j++) {
+                    var attr = item.attributes[j];
+                    result[attr.name] = attr.value;
+                }
+                
+                results.push(result);
+            }
+            
+            return results;
+        }
+
+        function parseAndLoadExternalData(data) {
+            var results = [];
+            
+            // 尝试多种常见数据格式
+            if (data.result) data = data.result;
+            if (data.data) data = data.data;
+            if (Array.isArray(data.list)) data = data.list;
+            
+            // 支持对象格式（如 {"HN300": [...]}）
+            if (!Array.isArray(data)) {
+                for (var key in data) {
+                    if (Array.isArray(data[key])) {
+                        data = data[key];
+                        break;
+                    }
+                }
+            }
+            
+            if (Array.isArray(data)) {
+                for (var i = 0; i < data.length; i++) {
+                    var item = data[i];
+                    var period = '';
+                    var num = '';
+                    
+                    // 尝试多种字段名
+                    if (item.period) period = item.period.toString();
+                    else if (item.qihao) period = item.qihao.toString();
+                    else if (item.no) period = item.no.toString();
+                    else if (item.id) period = item.id.toString();
+                    else if (item.QiHao) period = item.QiHao.toString();
+                    else if (item.Issue) period = item.Issue.toString();
+                    else if (item.issue) period = item.issue.toString();
+                    
+                    if (item.num) num = item.num.toString();
+                    else if (item.number) num = item.number.toString();
+                    else if (item.result) num = item.result.toString();
+                    else if (item.winNumber) num = item.winNumber.toString();
+                    else if (item.Number) num = item.Number.toString();
+                    else if (item.code) num = item.code.toString();
+                    else if (item.Ball) num = item.Ball.toString();
+                    else if (item.balls) num = item.balls.toString().replace(/[,\s]/g, '');
+                    
+                    if (period && num) {
+                        // 清理号码格式（去除空格、逗号等）
+                        num = num.replace(/[,\s，。、]/g, '');
+                        if (num.length >= 5) {
+                            // 处理期号格式
+                            // 支持格式：20260620-0007, 202606200007, 0620-0007, 06200007, 0623-243等
+                            period = period.trim();
+                            
+                            // 统一期号格式为：YYYYMMDD-NNNN
+                            var periodMatch = period.match(/(\d{8})[-_]?(\d{2,4})/);
+                            if (periodMatch) {
+                                period = periodMatch[1] + '-' + periodMatch[2].padStart(4, '0');
+                            } else if (period.length === 12) {
+                                period = period.substring(0, 8) + '-' + period.substring(8);
+                            } else if (period.length === 11) {
+                                period = period.substring(0, 8) + '-' + period.substring(8).padStart(4, '0');
+                            } else if (period.length <= 8 && !period.includes('-')) {
+                                var year = new Date().getFullYear().toString();
+                                period = year.substring(0, 2) + period;
+                            } else if (period.match(/^\d{4}-\d{2,4}$/)) {
+                                // 处理格式：0623-243 或 0623-0243
+                                var parts = period.split('-');
+                                var year = new Date().getFullYear().toString();
+                                period = year + parts[0] + '-' + parts[1].padStart(4, '0');
+                            }
+                            
+                            results.push({
+                                period: period,
+                                num: num.substring(0, 5)
+                            });
+                        }
+                    }
+                }
+            }
+            
+            if (results.length > 0) {
+                console.log('API返回 ' + results.length + ' 条数据');
+                console.log('合并前本地已有 ' + drawData.length + ' 条数据');
+                
+                // 限制最多300期（API获取的新数据）
+                var maxCount = 300;
+                if (results.length > maxCount) {
+                    results = results.slice(0, maxCount);
+                }
+                
+                // 增量更新：合并新数据和现有数据，去重
+                var existingPeriods = {};
+                for (var i = 0; i < drawData.length; i++) {
+                    existingPeriods[drawData[i].period] = true;
+                }
+                
+                console.log('本地已有的期号:', Object.keys(existingPeriods));
+                
+                // 添加新数据（只添加不存在的期号）
+                var newCount = 0;
+                for (var j = 0; j < results.length; j++) {
+                    if (!existingPeriods[results[j].period]) {
+                        drawData.push(results[j]);
+                        newCount++;
+                    }
+                }
+                console.log('本次刷新新增 ' + newCount + ' 条数据，当前总计 ' + drawData.length + ' 条');
+                
+                if (newCount > 0) {
+                    var statusEl = document.getElementById('apiStatus');
+                    if (statusEl) {
+                        statusEl.textContent = '🎉 新增 ' + newCount + ' 期数据！当前总计: ' + drawData.length + '期';
+                        statusEl.style.color = '#238636';
+                    }
+                }
+                
+                if (newCount === 0 && results.length > 0) {
+                    console.log('没有新增数据，API返回的期号：', results.map(function(item) { return item.period; }));
+                    console.log('本地已有的期号：', drawData.map(function(item) { return item.period; }));
+                }
+                
+                // 过滤无效数据
+                drawData = drawData.filter(function(item) {
+                    return item && item.period && item.num;
+                });
+                
+                // 按期号排序（最旧的在前，最新的在后）
+                sortDrawData(drawData);
+                
+                // 限制最多500期（保留最新的500期）
+                if (drawData.length > 500) {
+                    drawData = drawData.slice(drawData.length - 500);
+                }
+                
+                // 保存到本地存储
+                saveToLocalStorage();
+                
+                document.getElementById('drawInput').value = formatDrawData(drawData);
+                document.getElementById('drawCount').textContent = drawData.length + '期';
+                
+                var dataStatusEl = document.getElementById('dataStatus');
+                if (dataStatusEl) {
+                    dataStatusEl.textContent = '本地存储: ' + drawData.length + '期 | 最大: 500期';
+                }
+                
+                var posName = posType === 'front' ? '前三' : (posType === 'middle' ? '中三' : '后三');
+                document.getElementById('status').textContent = 
+                    '已导入' + drawData.length + '期开奖数据 | 定位: ' + posName;
+                
+                console.log('fetchExternalData完成，调用refreshChartsIfNeeded...');
+                refreshChartsIfNeeded();
+            }
+        }
+
+        function formatDrawData(data) {
+            var lines = [];
+            for (var i = data.length - 1; i >= 0; i--) {
+                lines.push(data[i].period + ' ' + data[i].num);
+            }
+            return lines.join('\n');
+        }
+
+        function loadDemoData() {
+            var statusEl = document.getElementById('apiStatus');
+            if (statusEl) {
+                statusEl.textContent = '正在加载示例数据...';
+                statusEl.style.color = '#58a6ff';
+            }
+            
+            // 生成100期模拟数据作为示例
+            var demoData = [];
+            var now = new Date();
+            
+            for (var i = 0; i < 100; i++) {
+                var date = new Date(now);
+                date.setDate(date.getDate() - i);
+                
+                var period = '' + (20000000 + i);
+                var num = '';
+                for (var j = 0; j < 5; j++) {
+                    num += Math.floor(Math.random() * 10).toString();
+                }
+                
+                demoData.push({
+                    period: period,
+                    num: num
+                });
+            }
+            
+            drawData = demoData;
+            document.getElementById('drawInput').value = formatDrawData(drawData);
+            document.getElementById('drawCount').textContent = drawData.length + '期';
+            loadDraws();
+            
+            if (statusEl) {
+                statusEl.textContent = '示例数据加载成功！';
+                statusEl.style.color = '#238636';
+            }
+            
+            setTimeout(function() {
+                if (statusEl) statusEl.textContent = '';
+            }, 3000);
+        }
+
+        // ==================== 自动刷新功能 ====================
+        var autoRefreshTimer = null;
+        var refreshInterval = 20000; // 20秒刷新一次
+
+        function startAutoRefresh() {
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+            }
+            
+            var refreshStatusEl = document.getElementById('refreshStatus');
+            if (refreshStatusEl) {
+                refreshStatusEl.textContent = '自动刷新已开启（每20秒）';
+                refreshStatusEl.style.color = '#238636';
+            }
+            
+            // 立即获取一次
+            fetchExternalData();
+            
+            // 设置定时刷新
+            autoRefreshTimer = setInterval(function() {
+                fetchExternalData();
+            }, refreshInterval);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+                autoRefreshTimer = null;
+            }
+            
+            var refreshStatusEl = document.getElementById('refreshStatus');
+            if (refreshStatusEl) {
+                refreshStatusEl.textContent = '自动刷新已停止';
+                refreshStatusEl.style.color = '#8b949e';
+            }
+        }
+
+        function pasteWebData() {
+            navigator.clipboard.readText().then(function(text) {
+                if (!text || text.trim() === '') {
+                    alert('剪贴板为空！请先复制网页上的开奖数据');
+                    return;
+                }
+                
+                var parsed = parseWebData(text);
+                
+                if (parsed.length === 0) {
+                    var preview = text.substring(0, 500);
+                    alert('未解析到有效数据！\n\n复制的原始数据预览：\n' + preview + (text.length > 500 ? '...' : ''));
+                    return;
+                }
+                
+                for (var i = 0; i < parsed.length; i++) {
+                    var item = parsed[i];
+                    var exists = drawData.find(function(d) { return d.period === item.period; });
+                    if (!exists) {
+                        drawData.push(item);
+                    }
+                }
+                
+                drawData.sort(function(a, b) { return a.period.localeCompare(b.period); });
+                
+                if (drawData.length > 500) {
+                    drawData = drawData.slice(drawData.length - 500);
+                }
+                
+                saveDrawData();
+                document.getElementById('drawInput').value = formatDrawData(drawData);
+                document.getElementById('drawCount').textContent = drawData.length + '期';
+                
+                var dataStatusEl = document.getElementById('dataStatus');
+                if (dataStatusEl) {
+                    dataStatusEl.textContent = '本地存储: ' + drawData.length + '期 | 最大: 500期';
+                }
+                
+                loadDraws();
+                
+                alert('成功导入 ' + parsed.length + ' 条数据！');
+            }).catch(function(err) {
+                var textarea = document.createElement('textarea');
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                document.execCommand('paste');
+                var text = textarea.value;
+                document.body.removeChild(textarea);
+                
+                if (!text || text.trim() === '') {
+                    alert('剪贴板为空！请先复制网页上的开奖数据');
+                    return;
+                }
+                
+                var parsed = parseWebData(text);
+                
+                if (parsed.length === 0) {
+                    alert('未解析到有效数据！');
+                    return;
+                }
+                
+                for (var i = 0; i < parsed.length; i++) {
+                    var item = parsed[i];
+                    var exists = drawData.find(function(d) { return d.period === item.period; });
+                    if (!exists) {
+                        drawData.push(item);
+                    }
+                }
+                
+                drawData.sort(function(a, b) { return a.period.localeCompare(b.period); });
+                
+                if (drawData.length > 500) {
+                    drawData = drawData.slice(drawData.length - 500);
+                }
+                
+                saveDrawData();
+                document.getElementById('drawInput').value = formatDrawData(drawData);
+                document.getElementById('drawCount').textContent = drawData.length + '期';
+                
+                var dataStatusEl = document.getElementById('dataStatus');
+                if (dataStatusEl) {
+                    dataStatusEl.textContent = '本地存储: ' + drawData.length + '期 | 最大: 500期';
+                }
+                
+                loadDraws();
+                
+                alert('成功导入 ' + parsed.length + ' 条数据！');
+            });
+        }
+
+        function parseWebData(text) {
+            var result = [];
+            var lines = text.trim().split('\n');
+            
+            var currentPeriod = null;
+            var numberBuffer = [];
+            
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (!line) continue;
+                
+                if (line.indexOf('期号') !== -1 || line.indexOf('开奖') !== -1 || line.indexOf('河内') !== -1 || 
+                    line.indexOf('形态') !== -1 || line.indexOf('和值') !== -1 || line.indexOf('组三') !== -1 ||
+                    line.indexOf('百位') !== -1 || line.indexOf('十位') !== -1 || line.indexOf('个位') !== -1 ||
+                    line.indexOf('号码分布') !== -1) {
+                    if (currentPeriod && numberBuffer.length >= 5) {
+                        var num = numberBuffer.slice(0, 5).join('');
+                        result.push({ period: currentPeriod, num: num });
+                    }
+                    currentPeriod = null;
+                    numberBuffer = [];
+                    continue;
+                }
+                
+                var periodMatch = line.match(/(\d{8})[-_]?(\d{2,4})/);
+                if (!periodMatch) {
+                    periodMatch = line.match(/(\d{10,12})/);
+                }
+                
+                if (periodMatch) {
+                    if (currentPeriod && numberBuffer.length >= 5) {
+                        var num = numberBuffer.slice(0, 5).join('');
+                        result.push({ period: currentPeriod, num: num });
+                    }
+                    
+                    var period;
+                    if (periodMatch.length === 3) {
+                        period = periodMatch[1] + '-' + periodMatch[2].padStart(4, '0');
+                    } else {
+                        var fullNum = periodMatch[1];
+                        period = fullNum.substring(0, 8) + '-' + fullNum.substring(8).padStart(4, '0');
+                    }
+                    currentPeriod = period;
+                    numberBuffer = [];
+                    
+                    var allDigits = line.replace(periodMatch[0], '').replace(/\D/g, '');
+                    if (allDigits.length > 0) {
+                        numberBuffer.push(...allDigits.split(''));
+                    }
+                } else {
+                    var singleDigit = line.match(/^\d$/);
+                    if (singleDigit) {
+                        if (currentPeriod) {
+                            numberBuffer.push(singleDigit[0]);
+                        }
+                    } else {
+                        var digits = line.replace(/\D/g, '');
+                        if (digits.length > 0 && currentPeriod) {
+                            numberBuffer.push(...digits.split(''));
+                        }
+                    }
+                }
+            }
+            
+            if (currentPeriod && numberBuffer.length >= 5) {
+                var num = numberBuffer.slice(0, 5).join('');
+                result.push({ period: currentPeriod, num: num });
+            }
+            
+            result.sort(function(a, b) { return a.period.localeCompare(b.period); });
+            
+            var unique = [];
+            var seen = {};
+            for (var j = 0; j < result.length; j++) {
+                if (!seen[result[j].period]) {
+                    seen[result[j].period] = true;
+                    unique.push(result[j]);
+                }
+            }
+            
+            return unique;
+        }
+
+        var TradingChartEngine = (function() {
+            function ScaleSystem(options) {
+                this.padding = options.padding || { top: 30, right: 50, bottom: 40, left: 50 };
+                this.width = options.width || 800;
+                this.height = options.height || 400;
+                this.priceRange = { min: -100, max: 100 };
+                this.dataRange = { start: 0, count: 100 };
+            }
+
+            ScaleSystem.prototype.setPriceRange = function(min, max) {
+                var padding = (max - min) * 0.1;
+                if (padding < 20) padding = 20;
+                this.priceRange.min = min - padding;
+                this.priceRange.max = max + padding;
+            };
+
+            ScaleSystem.prototype.setDataRange = function(start, count) {
+                this.dataRange.start = start;
+                this.dataRange.count = count;
+            };
+
+            ScaleSystem.prototype.x = function(index) {
+                var idx = index - this.dataRange.start;
+                if (this.dataRange.count <= 0) return 0;
+                return this.padding.left + idx * ((this.width - this.padding.left - this.padding.right) / this.dataRange.count);
+            };
+
+            ScaleSystem.prototype.y = function(value) {
+                var range = this.priceRange.max - this.priceRange.min;
+                if (range <= 0) return this.height / 2;
+                return this.padding.top + ((this.priceRange.max - value) / range) * (this.height - this.padding.top - this.padding.bottom);
+            };
+
+            ScaleSystem.prototype.barWidth = function() {
+                if (this.dataRange.count <= 0) return 1;
+                return (this.width - this.padding.left - this.padding.right) / this.dataRange.count;
+            };
+
+            ScaleSystem.prototype.resize = function(width, height) {
+                this.width = width;
+                this.height = height;
+            };
+
+            function downsample(data, targetCount) {
+                if (!data || data.length <= targetCount || targetCount <= 0) return data;
+                
+                var result = [];
+                var step = data.length / targetCount;
+                
+                for (var i = 0; i < targetCount; i++) {
+                    var startIdx = Math.floor(i * step);
+                    var endIdx = Math.floor((i + 1) * step);
+                    if (endIdx > data.length) endIdx = data.length;
+                    
+                    var slice = data.slice(startIdx, endIdx);
+                    if (slice.length === 0) continue;
+                    
+                    if (typeof slice[0] === 'object') {
+                        var high = -Infinity, low = Infinity, open = slice[0].o, close = slice[slice.length - 1].c;
+                        for (var j = 0; j < slice.length; j++) {
+                            if (slice[j].h > high) high = slice[j].h;
+                            if (slice[j].l < low) low = slice[j].l;
+                        }
+                        result.push({ o: open, c: close, h: high, l: low });
+                    } else {
+                        result.push(slice[slice.length - 1]);
+                    }
+                }
+                return result;
+            }
+
+            function downsampleBoolean(hitResults, targetCount) {
+                if (!hitResults || hitResults.length <= targetCount || targetCount <= 0) return hitResults;
+                
+                var result = [];
+                var step = hitResults.length / targetCount;
+                
+                for (var i = 0; i < targetCount; i++) {
+                    var startIdx = Math.floor(i * step);
+                    var endIdx = Math.floor((i + 1) * step);
+                    if (endIdx > hitResults.length) endIdx = hitResults.length;
+                    
+                    var slice = hitResults.slice(startIdx, endIdx);
+                    if (slice.length === 0) continue;
+                    
+                    var hitCount = 0;
+                    for (var j = 0; j < slice.length; j++) {
+                        if (slice[j] === 1) hitCount++;
+                    }
+                    result.push(hitCount > slice.length / 2 ? 1 : 0);
+                }
+                return result;
+            }
+
+            function RenderEngine(options) {
+                this.container = options.container || document.body;
+                this.width = options.width || 800;
+                this.height = options.height || 400;
+                this.dpr = window.devicePixelRatio || 1;
+                
+                this.scale = new ScaleSystem({
+                    width: this.width,
+                    height: this.height
+                });
+                
+                this.canvases = {};
+                this.layers = {};
+                
+                this.data = {
+                    kline: [],
+                    hitResults: [],
+                    ema: [],
+                    bollinger: { upper: [], mid: [], lower: [] }
+                };
+                
+                this.viewport = { start: 0, count: 150 };
+                this.maxBars = 150;
+                this.needsRender = false;
+                this.renderLoopId = null;
+                
+                this.init();
+            }
+
+            RenderEngine.prototype.init = function() {
+                this.createCanvas('bg', 0);
+                this.createCanvas('grid', 1);
+                this.createCanvas('kline', 2);
+                this.createCanvas('indicator', 3);
+                this.createCanvas('signal', 4);
+                this.createCanvas('labels', 5);
+                
+                this.renderBg();
+                this.startRenderLoop();
+            };
+
+            RenderEngine.prototype.createCanvas = function(name, zIndex) {
+                var canvas = document.createElement('canvas');
+                canvas.style.position = 'absolute';
+                canvas.style.left = '0';
+                canvas.style.top = '0';
+                canvas.style.zIndex = zIndex;
+                canvas.width = this.width * this.dpr;
+                canvas.height = this.height * this.dpr;
+                canvas.style.width = this.width + 'px';
+                canvas.style.height = this.height + 'px';
+                
+                var ctx = canvas.getContext('2d');
+                ctx.scale(this.dpr, this.dpr);
+                
+                this.canvases[name] = { canvas: canvas, ctx: ctx };
+                this.container.appendChild(canvas);
+            };
+
+            RenderEngine.prototype.startRenderLoop = function() {
+                var self = this;
+                function loop() {
+                    if (self.needsRender) {
+                        self.render();
+                        self.needsRender = false;
+                    }
+                    self.renderLoopId = requestAnimationFrame(loop);
+                }
+                loop();
+            };
+
+            RenderEngine.prototype.stopRenderLoop = function() {
+                if (this.renderLoopId) {
+                    cancelAnimationFrame(this.renderLoopId);
+                    this.renderLoopId = null;
+                }
+            };
+
+            RenderEngine.prototype.setKlineData = function(klineData, hitResults) {
+                this.data.kline = klineData || [];
+                this.data.hitResults = hitResults || [];
+                this.updateViewport();
+                this.updateScale();
+                this.triggerRender();
+            };
+
+            RenderEngine.prototype.setEMAData = function(emaData) {
+                this.data.ema = emaData || [];
+                this.updateScale();
+                this.triggerRender();
+            };
+
+            RenderEngine.prototype.setBollingerData = function(upper, mid, lower) {
+                this.data.bollinger = { upper: upper || [], mid: mid || [], lower: lower || [] };
+                this.updateScale();
+                this.triggerRender();
+            };
+
+            RenderEngine.prototype.updateViewport = function() {
+                var total = this.data.kline.length;
+                if (total <= this.maxBars) {
+                    this.viewport.start = 0;
+                    this.viewport.count = total;
+                } else {
+                    this.viewport.start = total - this.maxBars;
+                    this.viewport.count = this.maxBars;
+                }
+                this.scale.setDataRange(this.viewport.start, this.viewport.count);
+            };
+
+            RenderEngine.prototype.updateScale = function() {
+                var min = Infinity, max = -Infinity;
+                var start = this.viewport.start;
+                var end = start + this.viewport.count;
+                
+                for (var i = start; i < end && i < this.data.kline.length; i++) {
+                    var d = this.data.kline[i];
+                    if (d) {
+                        min = Math.min(min, d.l);
+                        max = Math.max(max, d.h);
+                    }
+                }
+                
+                if (this.data.bollinger.upper.length > 0) {
+                    for (var i = start; i < end && i < this.data.bollinger.upper.length; i++) {
+                        max = Math.max(max, this.data.bollinger.upper[i]);
+                        min = Math.min(min, this.data.bollinger.lower[i]);
+                    }
+                }
+                
+                if (min === Infinity) { min = -50; max = 50; }
+                this.scale.setPriceRange(min, max);
+            };
+
+            RenderEngine.prototype.triggerRender = function() {
+                this.needsRender = true;
+            };
+
+            RenderEngine.prototype.renderBg = function() {
+                var ctx = this.canvases.bg.ctx;
+                ctx.fillStyle = '#0d1117';
+                ctx.fillRect(0, 0, this.width, this.height);
+            };
+
+            RenderEngine.prototype.render = function() {
+                this.renderGrid();
+                this.renderKline();
+                this.renderIndicators();
+                this.renderLabels();
+            };
+
+            RenderEngine.prototype.renderGrid = function() {
+                var ctx = this.canvases.grid.ctx;
+                ctx.clearRect(0, 0, this.width, this.height);
+                
+                ctx.strokeStyle = '#1a1a1a';
+                ctx.lineWidth = 0.5;
+                var gridLines = 8;
+                
+                for (var i = 0; i <= gridLines; i++) {
+                    var val = this.scale.priceRange.max - (this.scale.priceRange.max - this.scale.priceRange.min) * (i / gridLines);
+                    var y = this.scale.y(val);
+                    ctx.beginPath();
+                    ctx.moveTo(this.scale.padding.left, y);
+                    ctx.lineTo(this.width - this.scale.padding.right, y);
+                    ctx.stroke();
+                }
+            };
+
+            RenderEngine.prototype.renderKline = function() {
+                var ctx = this.canvases.kline.ctx;
+                ctx.clearRect(0, 0, this.width, this.height);
+                
+                var start = this.viewport.start;
+                var count = this.viewport.count;
+                var barW = this.scale.barWidth();
+                
+                var klineData = this.data.kline;
+                var hitResults = this.data.hitResults;
+                
+                for (var i = 0; i < count && (start + i) < klineData.length; i++) {
+                    var idx = start + i;
+                    var d = klineData[idx];
+                    if (!d) continue;
+                    
+                    var x = this.scale.x(idx);
+                    var isUp = d.c >= d.o;
+                    var color = isUp ? '#ff0000' : '#00cccc';
+                    
+                    ctx.strokeStyle = '#00ffff';
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x + barW / 2, this.scale.y(d.h));
+                    ctx.lineTo(x + barW / 2, this.scale.y(d.l));
+                    ctx.stroke();
+                    
+                    var bodyTop = this.scale.y(Math.max(d.o, d.c));
+                    var bodyBottom = this.scale.y(Math.min(d.o, d.c));
+                    var bodyH = Math.abs(bodyBottom - bodyTop);
+                    if (bodyH < 1) bodyH = 1;
+                    
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, bodyTop, barW, bodyH);
+                }
+            };
+
+            RenderEngine.prototype.renderIndicators = function() {
+                var ctx = this.canvases.indicator.ctx;
+                ctx.clearRect(0, 0, this.width, this.height);
+                
+                var start = this.viewport.start;
+                var count = this.viewport.count;
+                
+                if (this.data.bollinger.upper.length > 0) {
+                    ctx.strokeStyle = '#0066cc';
+                    ctx.lineWidth = 1;
+                    
+                    ctx.beginPath();
+                    for (var i = 0; i < count && (start + i) < this.data.bollinger.upper.length; i++) {
+                        var idx = start + i;
+                        var x = this.scale.x(idx);
+                        var y = this.scale.y(this.data.bollinger.upper[idx]);
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    for (var i = 0; i < count && (start + i) < this.data.bollinger.lower.length; i++) {
+                        var idx = start + i;
+                        var x = this.scale.x(idx);
+                        var y = this.scale.y(this.data.bollinger.lower[idx]);
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+                
+                if (this.data.ema.length > 0) {
+                    ctx.strokeStyle = '#3366ff';
+                    ctx.lineWidth = 1.5;
+                    
+                    ctx.beginPath();
+                    for (var i = 0; i < count && (start + i) < this.data.ema.length; i++) {
+                        var idx = start + i;
+                        var x = this.scale.x(idx);
+                        var y = this.scale.y(this.data.ema[idx]);
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+            };
+
+            RenderEngine.prototype.renderLabels = function() {
+                var ctx = this.canvases.labels.ctx;
+                ctx.clearRect(0, 0, this.width, this.height);
+                
+                ctx.fillStyle = '#666666';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'right';
+                
+                var gridLines = 8;
+                for (var i = 0; i <= gridLines; i++) {
+                    var val = this.scale.priceRange.max - (this.scale.priceRange.max - this.scale.priceRange.min) * (i / gridLines);
+                    var y = this.scale.y(val);
+                    ctx.fillText(Math.round(val), this.width - 10, y + 4);
+                }
+            };
+
+            RenderEngine.prototype.resize = function(width, height) {
+                this.width = width;
+                this.height = height;
+                this.scale.resize(width, height);
+                
+                for (var name in this.canvases) {
+                    var c = this.canvases[name];
+                    c.canvas.width = width * this.dpr;
+                    c.canvas.height = height * this.dpr;
+                    c.canvas.style.width = width + 'px';
+                    c.canvas.style.height = height + 'px';
+                    c.ctx.scale(this.dpr, this.dpr);
+                }
+                
+                this.triggerRender();
+            };
+
+            RenderEngine.prototype.setMaxBars = function(count) {
+                this.maxBars = count;
+                this.updateViewport();
+                this.updateScale();
+                this.triggerRender();
+            };
+
+            RenderEngine.prototype.destroy = function() {
+                this.stopRenderLoop();
+                for (var name in this.canvases) {
+                    if (this.canvases[name].canvas.parentNode) {
+                        this.canvases[name].canvas.parentNode.removeChild(this.canvases[name].canvas);
+                    }
+                }
+                this.canvases = {};
+            };
+
+            function DataStream(options) {
+                this.listeners = [];
+                this.data = [];
+                this.transform = options.transform || function(d) { return d; };
+            }
+
+            DataStream.prototype.subscribe = function(listener) {
+                this.listeners.push(listener);
+            };
+
+            DataStream.prototype.unsubscribe = function(listener) {
+                this.listeners = this.listeners.filter(function(l) { return l !== listener; });
+            };
+
+            DataStream.prototype.push = function(data) {
+                var transformed = this.transform(data);
+                this.data.push(transformed);
+                for (var i = 0; i < this.listeners.length; i++) {
+                    this.listeners[i](transformed, this.data);
+                }
+            };
+
+            DataStream.prototype.setData = function(dataArray) {
+                this.data = dataArray.map(this.transform);
+                for (var i = 0; i < this.listeners.length; i++) {
+                    this.listeners[i](null, this.data);
+                }
+            };
+
+            function calculateEMA(rawData, period) {
+                var k = 2 / (period + 1);
+                var ema = [];
+                var prev = rawData[0] || 0;
+                for (var i = 0; i < rawData.length; i++) {
+                    prev = rawData[i] * k + prev * (1 - k);
+                    ema.push(prev * 10);
+                }
+                return ema;
+            }
+
+            function calculateBollinger(rawData, period, multiplier) {
+                var ema = calculateEMA(rawData, period);
+                
+                var std = [];
+                for (var i = 0; i < rawData.length; i++) {
+                    var start = Math.max(0, i - period);
+                    var slice = rawData.slice(start, i + 1);
+                    var mean = 0;
+                    for (var j = 0; j < slice.length; j++) mean += slice[j];
+                    mean /= slice.length;
+                    var variance = 0;
+                    for (var j = 0; j < slice.length; j++) variance += Math.pow(slice[j] - mean, 2);
+                    variance /= slice.length;
+                    std.push(Math.sqrt(variance) * 10);
+                }
+                
+                var upper = [], lower = [];
+                for (var i = 0; i < ema.length; i++) {
+                    upper.push(ema[i] + std[i] * multiplier);
+                    lower.push(ema[i] - std[i] * multiplier);
+                }
+                
+                return { upper: upper, mid: ema, lower: lower };
+            }
+
+            function generateKlineData(hitResults, rawData, period) {
+                var klineData = [];
+                for (var i = 0; i < rawData.length; i++) {
+                    var close = rawData[i];
+                    var open = i === 0 ? close : rawData[i - 1];
+                    var high = Math.max(open, close);
+                    var low = Math.min(open, close);
+                    
+                    klineData.push({ o: open, c: close, h: high, l: low });
+                }
+                
+                return klineData;
+            }
+
+            return {
+                RenderEngine: RenderEngine,
+                ScaleSystem: ScaleSystem,
+                DataStream: DataStream,
+                downsample: downsample,
+                downsampleBoolean: downsampleBoolean,
+                calculateEMA: calculateEMA,
+                calculateBollinger: calculateBollinger,
+                generateKlineData: generateKlineData
+            };
+        })();
+    </script>
+</body>
+</html>
