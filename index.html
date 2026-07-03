@@ -245,6 +245,9 @@
         .ai-stat-value.medium { color:#d29922; }
         .ai-stat-value.low { color:#f85149; }
         .ai-stat-value.blue { color:#58a6ff; }
+        .ai-position-label { font-size:10px; color:#8957e5; font-weight:bold; margin-bottom:6px; padding-left:4px; border-left:3px solid #8957e5; }
+        .ai-rec-history { display:flex; flex-wrap:wrap; gap:10px; font-size:10px; padding-top:8px; border-top:1px solid #30363d; }
+        .ai-history-item { color:#8b949e; background:#161b22; padding:3px 8px; border-radius:3px; }
         .ai-stat-value.purple { color:#a371f7; }
         .ai-score-bar { height:6px; background:#161b22; border-radius:3px; overflow:hidden; margin-bottom:4px; }
         .ai-score-fill { height:100%; border-radius:3px; transition:width 0.5s ease; }
@@ -415,6 +418,7 @@
                     <button class="btn btn-purple" onclick="runAIAnalysis()">🎯 运行AI分析</button>
                     <button class="btn btn-orange" onclick="clearAIResults()">🗑️ 清空结果</button>
                     <button class="btn btn-blue" onclick="startAITraining()">🚀 开始训练</button>
+                    <button class="btn btn-gray" onclick="clearPositionStats()" style="padding:6px 12px;font-size:11px;">📋 清除统计</button>
                 </div>
                 
                 <div class="ai-stats" style="display:flex;gap:15px;margin-bottom:10px;font-size:10px;color:#8b949e;">
@@ -454,6 +458,30 @@
                         <input type="file" id="importPatternsInput" accept=".json" style="display:none;" onchange="importPatterns(this)">
                     </div>
                     <div style="font-size:9px;color:#8b949e;margin-top:5px;">💡 导出为JSON文件，方便跨设备迁移；导入时会合并现有数据</div>
+                </div>
+                
+                <div class="ai-threshold-config" style="background:#161b22;border-radius:4px;padding:10px;margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                        <div style="font-size:11px;font-weight:bold;color:#8957e5;">🔄 模式回溯验证</div>
+                        <span id="backtestStatus" style="font-size:9px;color:#8b949e;"></span>
+                    </div>
+                    <div style="display:flex;gap:15px;flex-wrap:wrap;align-items:center;">
+                        <div style="display:flex;align-items:center;gap:5px;">
+                            <label style="font-size:10px;color:#8b949e;">回溯期数:</label>
+                            <input type="number" id="backtestPeriods" min="5" max="50" value="10" style="width:45px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
+                            <span style="font-size:10px;color:#8b949e;">期</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:5px;">
+                            <label style="font-size:10px;color:#8b949e;">淘汰阈值:</label>
+                            <input type="number" id="backtestThreshold" min="0" max="100" value="30" style="width:45px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
+                            <span style="font-size:10px;color:#8b949e;">%</span>
+                        </div>
+                        <button class="btn btn-purple" onclick="runBacktestValidation()" style="padding:5px 12px;font-size:11px;">立即回溯</button>
+                        <label style="font-size:10px;color:#8b949e;display:flex;align-items:center;gap:3px;">
+                            <input type="checkbox" id="autoBacktest" style="vertical-align:middle;"> 自动回溯
+                        </label>
+                    </div>
+                    <div style="font-size:9px;color:#8b949e;margin-top:5px;">💡 异步后台执行，不影响正常分析；命中率低于阈值的模式将被删除</div>
                 </div>
                 
                 <div id="aiResult" style="display:none;">
@@ -1685,22 +1713,6 @@
             }
         }
 
-        function createMock() {
-            var data = [];
-            var now = new Date();
-            for (var i = 0; i < 500; i++) {
-                var d = new Date(now);
-                d.setDate(d.getDate() - i);
-                var issue = d.getFullYear() + 
-                    String(d.getMonth()+1).padStart(2,'0') + 
-                    String(d.getDate()).padStart(2,'0');
-                var num = String(Math.floor(Math.random() * 100000)).padStart(5, '0');
-                data.push(issue + ' ' + num);
-            }
-            document.getElementById('drawInput').value = data.join('\n');
-            loadDraws();
-        }
-
         function openModal(idx) {
             if (!groups[idx]) return;
             currentChartIdx = idx;
@@ -1823,55 +1835,53 @@
 
         window.onload = function() {
             console.log('Page loaded');
-            loadFromLocalStorage();
-            if (drawData.length === 0) {
-                console.log('No saved data, creating mock data');
-                createMock();
-            }
             
-            initAIDatabase().then(function() {
-                console.log('[AI] Database initialized, drawData.length:', drawData.length);
-                console.log('[AI] Calling fillDataLakeFromDrawData...');
-                try {
-                    fillDataLakeFromDrawData();
-                    console.log('[AI] fillDataLakeFromDrawData completed');
-                } catch (e) {
-                    console.error('[AI] fillDataLakeFromDrawData error:', e);
-                }
+            setTimeout(function() {
+                loadFromLocalStorage();
+                loadPositionStats();
+                console.log('Data loaded, drawData.length=' + drawData.length);
+            }, 50);
+            
+            setTimeout(function() {
+                initEditor();
+                loadTrendList();
+                updateSplitRows();
                 updateAIStatsUI();
-                
-                setTimeout(function() {
-                    console.log('[AI] Auto training check, drawData.length:', drawData.length, 'aiDataLake.length:', aiDataLake.length);
-                    if (drawData.length >= 50) {
-                        showAutoTrainingStatus();
-                        runSelfPlaySimulation(2000, function(msg) {
-                            if (msg.type === 'progress') {
-                                updateAutoTrainingProgress(msg.progress, msg.total, msg.currentHits);
-                            } else if (msg.type === 'complete') {
-                                console.log('[AI] Initial training complete:', msg.hitRate.toFixed(2) + '%');
-                                hideAutoTrainingStatus(msg.hitRate);
-                            }
-                        });
-                    }
-                }, 3000);
-            }).catch(function(err) {
-                console.error('[AI] Failed to initialize:', err);
-            });
-            console.log('Data loaded, drawData.length=' + drawData.length);
-            initEditor();
-            loadTrendList();
-            updateSplitRows();
+            }, 100);
             
-            initAIDatabase().then(function() {
-                console.log('[AI] Database initialized on page load');
-                loadPatterns();
-                
-                if (drawData.length > 0) {
-                    var latest = drawData[drawData.length - 1];
-                    onNewDrawData(latest);
+            setTimeout(function() {
+                if (aiAnalysisHistory.length > 0) {
+                    console.log('[AI] AI analysis history loaded:', aiAnalysisHistory.length, 'records');
                 }
-            }).catch(function(err) {
-                console.error('[AI] Failed to initialize database:', err);
+            }, 150);
+            
+            setTimeout(function() {
+                initAIDatabase().then(function() {
+                    console.log('[AI] Database initialized');
+                    
+                    if (drawData.length > 0 && aiAnalysisHistory.length > 0) {
+                        var lastHistory = aiAnalysisHistory[aiAnalysisHistory.length - 1];
+                        if (lastHistory && lastHistory.recommendations) {
+                            lastAnalysisResults = lastHistory.recommendations.slice();
+                            console.log('[AI] Restored last analysis results:', lastAnalysisResults.length, 'recommendations');
+                            renderRecommendations({ recommendations: lastAnalysisResults });
+                        }
+                    }
+                }).catch(function(err) {
+                    console.error('[AI] Failed to initialize database:', err);
+                });
+            }, 500);
+            
+            window.addEventListener('beforeunload', function(e) {
+                try {
+                    if (aiPatterns.length > 0) {
+                        savePatterns();
+                    }
+                    saveAIAnalysisHistory();
+                    savePositionStats();
+                } catch (err) {
+                    console.error('[AI] Error saving on unload:', err);
+                }
             });
         };
         
@@ -1881,9 +1891,12 @@
                 if (saved) {
                     drawData = JSON.parse(saved);
                     sortDrawData(drawData);
-                    document.getElementById('drawInput').value = formatDrawData(drawData);
                     document.getElementById('drawCount').textContent = drawData.length + '期';
-                    updateCurrentDrawDisplay(); // 更新当期开奖号码显示
+                    updateCurrentDrawDisplay();
+                    
+                    setTimeout(function() {
+                        document.getElementById('drawInput').value = formatDrawData(drawData);
+                    }, 500);
                 }
             } catch (e) {
                 console.error('Failed to load from localStorage:', e);
@@ -2995,6 +3008,7 @@
         // 手动模式下显示第一次分割结果
         function displayManualFirstResult(results) {
             currentMode = 'split';
+            window.splitResults = results;
             var container = document.getElementById('autoResult');
             var r = results[0];
             
@@ -3154,6 +3168,7 @@
 
         function displayAutoResult(results) {
             currentMode = 'split';
+            window.splitResults = results;
             var container = document.getElementById('autoResult');
             var html = '';
             
@@ -4178,6 +4193,9 @@
         var aiDB = null;
         var aiDataLake = [];
         var aiPatterns = [];
+        var aiAnalysisRunning = false;
+        var aiTrainingCompleted = false;
+        var aiLastTrainedPeriod = '';
         var patternDB = null;
         
         function initAIDatabase() {
@@ -4203,7 +4221,7 @@
                     return;
                 }
                 
-                var request = indexedDB.open('lotteryPatternDB', 1);
+                var request = indexedDB.open('lotteryPatternDB', 2);
                 
                 request.onupgradeneeded = function(e) {
                     var db = e.target.result;
@@ -4216,10 +4234,12 @@
                 
                 request.onsuccess = function(e) {
                     patternDB = e.target.result;
+                    console.log('[AI] IndexedDB initialized:', patternDB.name);
                     resolve();
                 };
                 
                 request.onerror = function(e) {
+                    console.error('[AI] IndexedDB init error:', e.target.error);
                     reject(e.target.error);
                 };
             });
@@ -4247,59 +4267,113 @@
         
         function loadPatterns() {
             return new Promise(function(resolve) {
+                var localStoragePatterns = [];
+                try {
+                    var saved = localStorage.getItem('lotteryPatterns');
+                    if (saved) {
+                        localStoragePatterns = JSON.parse(saved);
+                        console.log('[AI] Loaded', localStoragePatterns.length, 'patterns from localStorage');
+                        
+                        aiPatterns = localStoragePatterns;
+                        console.log('[AI] Patterns assigned to aiPatterns:', aiPatterns.length);
+                    }
+                    
+                    var trainingStatus = localStorage.getItem('aiTrainingStatus');
+                    if (trainingStatus) {
+                        var status = JSON.parse(trainingStatus);
+                        aiTrainingCompleted = status.completed || false;
+                        aiLastTrainedPeriod = status.lastPeriod || '';
+                        console.log('[AI] Loaded training status: completed=', aiTrainingCompleted, ', lastPeriod=', aiLastTrainedPeriod);
+                    }
+                } catch (e) {
+                    console.error('[AI] Failed to load patterns from localStorage:', e);
+                }
+                
                 if (patternDB) {
                     var transaction = patternDB.transaction(['patterns'], 'readonly');
                     var store = transaction.objectStore('patterns');
                     var request = store.getAll();
                     
                     request.onsuccess = function(e) {
-                        aiPatterns = e.target.result || [];
-                        console.log('[AI] Loaded', aiPatterns.length, 'patterns from IndexedDB');
+                        var dbPatterns = e.target.result || [];
+                        console.log('[AI] Loaded', dbPatterns.length, 'patterns from IndexedDB');
+                        
+                        if (localStoragePatterns.length > dbPatterns.length) {
+                            aiPatterns = localStoragePatterns;
+                            savePatterns();
+                        } else {
+                            aiPatterns = dbPatterns.length > 0 ? dbPatterns : localStoragePatterns;
+                        }
                         resolve();
                     };
                     
                     request.onerror = function() {
                         console.error('[AI] Failed to load patterns from IndexedDB');
-                        aiPatterns = [];
+                        aiPatterns = localStoragePatterns;
                         resolve();
                     };
                 } else {
-                    try {
-                        var saved = localStorage.getItem('lotteryPatterns');
-                        if (saved) {
-                            aiPatterns = JSON.parse(saved);
-                        }
-                    } catch (e) {
-                        console.error('[AI] Failed to load Patterns:', e);
-                        aiPatterns = [];
-                    }
+                    aiPatterns = localStoragePatterns;
                     resolve();
                 }
             });
         }
         
         function savePatterns() {
-            if (patternDB) {
-                var transaction = patternDB.transaction(['patterns'], 'readwrite');
-                var store = transaction.objectStore('patterns');
-                
-                var clearReq = store.clear();
-                clearReq.onsuccess = function() {
-                    aiPatterns.forEach(function(pattern) {
-                        store.put(pattern);
-                    });
-                };
-                
-                clearReq.onerror = function() {
-                    console.error('[AI] Failed to clear patterns');
-                };
-            } else {
+            return new Promise(function(resolve) {
                 try {
                     localStorage.setItem('lotteryPatterns', JSON.stringify(aiPatterns));
+                    console.log('[AI] Saved', aiPatterns.length, 'patterns to localStorage');
+                    
+                    var trainingStatus = {
+                        completed: aiTrainingCompleted,
+                        lastPeriod: aiLastTrainedPeriod
+                    };
+                    localStorage.setItem('aiTrainingStatus', JSON.stringify(trainingStatus));
                 } catch (e) {
-                    console.error('[AI] Failed to save Patterns:', e);
+                    console.error('[AI] Failed to save Patterns to localStorage:', e);
                 }
-            }
+                
+                if (patternDB) {
+                    var transaction = patternDB.transaction(['patterns'], 'readwrite');
+                    var store = transaction.objectStore('patterns');
+                    var clearReq = store.clear();
+                    
+                    clearReq.onsuccess = function() {
+                        var savedCount = 0;
+                        var totalCount = aiPatterns.length;
+                        
+                        if (totalCount === 0) {
+                            console.log('[AI] Saved 0 patterns to IndexedDB');
+                            resolve();
+                            return;
+                        }
+                        
+                        aiPatterns.forEach(function(pattern) {
+                            var req = store.put(pattern);
+                            req.onsuccess = function() {
+                                savedCount++;
+                                if (savedCount === totalCount) {
+                                    console.log('[AI] Saved', totalCount, 'patterns to IndexedDB');
+                                    resolve();
+                                }
+                            };
+                            req.onerror = function() {
+                                savedCount++;
+                                if (savedCount === totalCount) {
+                                    resolve();
+                                }
+                            };
+                        });
+                    };
+                    clearReq.onerror = function() {
+                        console.error('[AI] Failed to clear IndexedDB');
+                        resolve();
+                    };
+                } else {
+                    resolve();
+                }
+            });
         }
         
         function savePeriodToDB(periodData) {
@@ -4587,8 +4661,7 @@
                 pattern.id = Date.now() + Math.random();
                 pattern.timestamp = Date.now();
                 aiPatterns.push(pattern);
-                savePatterns();
-                resolve();
+                savePatterns().then(resolve);
             });
         }
         
@@ -4670,6 +4743,143 @@
             
             alert('模式库已清空');
             console.log('[AI] Pattern library cleared');
+        }
+        
+        var backtestRunning = false;
+        
+        function runBacktestValidation() {
+            if (backtestRunning) {
+                console.log('[AI] Backtest already running');
+                return;
+            }
+            
+            if (aiPatterns.length === 0) {
+                alert('模式库为空，无需回溯');
+                return;
+            }
+            
+            var backtestPeriods = parseInt(document.getElementById('backtestPeriods').value) || 10;
+            var threshold = parseInt(document.getElementById('backtestThreshold').value) || 30;
+            
+            backtestRunning = true;
+            var statusEl = document.getElementById('backtestStatus');
+            if (statusEl) statusEl.textContent = '回溯中...';
+            
+            console.log('[AI] Starting backtest validation:', backtestPeriods, 'periods, threshold:', threshold + '%');
+            
+            getAllPeriodsFromDB().then(function(periods) {
+                if (periods.length < backtestPeriods + 10) {
+                    console.log('[AI] Not enough data for backtest');
+                    backtestRunning = false;
+                    if (statusEl) statusEl.textContent = '数据不足';
+                    return;
+                }
+                
+                var patternStats = {};
+                aiPatterns.forEach(function(p) {
+                    patternStats[p.id] = { hits: 0, tests: 0, pattern: p };
+                });
+                
+                var batchSize = 5;
+                var currentStart = 0;
+                var testIndices = [];
+                
+                for (var i = periods.length - backtestPeriods; i < periods.length; i++) {
+                    testIndices.push(i);
+                }
+                
+                function processBatch() {
+                    var end = Math.min(currentStart + batchSize, testIndices.length);
+                    
+                    for (var i = currentStart; i < end; i++) {
+                        var testIdx = testIndices[i];
+                        var testPeriod = periods[testIdx];
+                        var historyData = periods.slice(Math.max(0, testIdx - 50), testIdx);
+                        
+                        if (!testPeriod || !testPeriod.back3) continue;
+                        
+                        var actual = testPeriod.back3;
+                        
+                        for (var j = 0; j < aiPatterns.length; j++) {
+                            var pattern = aiPatterns[j];
+                            if (!patternStats[pattern.id]) continue;
+                            
+                            patternStats[pattern.id].tests++;
+                            
+                            if (pattern.feature && pattern.feature.group) {
+                                var sim = calculateGroupSimilarity(pattern.feature.group, [actual]);
+                                if (sim > 0.2) {
+                                    patternStats[pattern.id].hits++;
+                                }
+                            } else if (pattern.prediction) {
+                                if (pattern.prediction.indexOf(actual) !== -1) {
+                                    patternStats[pattern.id].hits++;
+                                }
+                            }
+                        }
+                    }
+                    
+                    currentStart = end;
+                    
+                    if (statusEl) {
+                        statusEl.textContent = '回溯中... ' + Math.round((currentStart / testIndices.length) * 100) + '%';
+                    }
+                    
+                    if (currentStart < testIndices.length) {
+                        setTimeout(processBatch, 10);
+                    } else {
+                        var removedCount = 0;
+                        var newPatterns = [];
+                        
+                        for (var id in patternStats) {
+                            var stat = patternStats[id];
+                            if (stat.tests > 0) {
+                                var hitRate = (stat.hits / stat.tests) * 100;
+                                if (hitRate >= threshold) {
+                                    stat.pattern.backtestHitRate = hitRate;
+                                    stat.pattern.backtestTests = stat.tests;
+                                    newPatterns.push(stat.pattern);
+                                } else {
+                                    removedCount++;
+                                }
+                            } else {
+                                newPatterns.push(stat.pattern);
+                            }
+                        }
+                        
+                        aiPatterns = newPatterns;
+                        savePatterns();
+                        updateAIStatsUI();
+                        
+                        backtestRunning = false;
+                        if (statusEl) {
+                            statusEl.textContent = '完成: 保留' + aiPatterns.length + '个, 淘汰' + removedCount + '个';
+                        }
+                        
+                        console.log('[AI] Backtest complete: kept', aiPatterns.length, 'removed', removedCount);
+                    }
+                }
+                
+                processBatch();
+            }).catch(function(err) {
+                console.error('[AI] Backtest error:', err);
+                backtestRunning = false;
+                if (statusEl) statusEl.textContent = '回溯失败';
+            });
+        }
+        
+        function autoBacktestIfNeeded() {
+            var autoCheck = document.getElementById('autoBacktest');
+            if (!autoCheck || !autoCheck.checked) return;
+            if (backtestRunning) return;
+            if (aiPatterns.length < 50) return;
+            
+            var lastBacktest = parseInt(localStorage.getItem('lastBacktestTime') || '0');
+            var now = Date.now();
+            if (now - lastBacktest > 30 * 60 * 1000) {
+                localStorage.setItem('lastBacktestTime', now.toString());
+                runBacktestValidation();
+            }
         }
         
         function getAllPatternsFromDB() {
@@ -4966,12 +5176,92 @@
         function extractPattern(historyData, prediction, hit) {
             if (!historyData || historyData.length < 10) return null;
             
-            var recent = historyData.slice(-10);
+            var recent = historyData.slice(-15);
             var featureVector = [];
             
             for (var i = 1; i < recent.length; i++) {
-                featureVector.push(parseInt(recent[i].back3) - parseInt(recent[i-1].back3));
+                var curr = recent[i];
+                var prev = recent[i-1];
+                
+                var currBack3 = parseInt(curr.back3 || '0');
+                var prevBack3 = parseInt(prev.back3 || '0');
+                var currMid3 = parseInt(curr.mid3 || '0');
+                var prevMid3 = parseInt(prev.mid3 || '0');
+                var currFront3 = parseInt(curr.front3 || '0');
+                var prevFront3 = parseInt(prev.front3 || '0');
+                
+                featureVector.push(currBack3 - prevBack3);
+                featureVector.push(currMid3 - prevMid3);
+                featureVector.push(currFront3 - prevFront3);
             }
+            
+            var sumValues = [];
+            var spanValues = [];
+            var oddRatios = [];
+            var bigRatios = [];
+            
+            for (var i = 0; i < recent.length; i++) {
+                var p = recent[i];
+                var numStr = p.number || p.num || '';
+                if (numStr.length >= 5) {
+                    var digits = numStr.split('').map(Number);
+                    sumValues.push(digits.reduce(function(a, b) { return a + b; }, 0));
+                    spanValues.push(Math.max.apply(null, digits) - Math.min.apply(null, digits));
+                    oddRatios.push(digits.filter(function(d) { return d % 2 === 1; }).length / 5);
+                    bigRatios.push(digits.filter(function(d) { return d >= 5; }).length / 5);
+                }
+            }
+            
+            if (sumValues.length > 0) {
+                var sumMean = sumValues.reduce(function(a, b) { return a + b; }, 0) / sumValues.length;
+                var sumStd = Math.sqrt(sumValues.map(function(v) { return Math.pow(v - sumMean, 2); }).reduce(function(a, b) { return a + b; }, 0) / sumValues.length);
+                featureVector.push(Math.round(sumMean));
+                featureVector.push(Math.round(sumStd));
+                
+                var spanMean = spanValues.reduce(function(a, b) { return a + b; }, 0) / spanValues.length;
+                featureVector.push(Math.round(spanMean));
+                
+                var oddMean = oddRatios.reduce(function(a, b) { return a + b; }, 0) / oddRatios.length;
+                var bigMean = bigRatios.reduce(function(a, b) { return a + b; }, 0) / bigRatios.length;
+                featureVector.push(Math.round(oddMean * 100));
+                featureVector.push(Math.round(bigMean * 100));
+            } else {
+                featureVector.push(0, 0, 0, 0, 0);
+            }
+            
+            var back3Values = [];
+            for (var i = 0; i < recent.length; i++) {
+                back3Values.push(parseInt(recent[i].back3 || '0'));
+            }
+            
+            if (back3Values.length >= 5) {
+                var ema5 = calculateSimpleMA(back3Values.slice(-5));
+                var ema10 = calculateSimpleMA(back3Values.slice(-10));
+                var volatility = calculateVolatility(back3Values);
+                featureVector.push(Math.round(ema5));
+                featureVector.push(Math.round(ema10));
+                featureVector.push(Math.round(volatility));
+            } else {
+                featureVector.push(0, 0, 0);
+            }
+            
+            var periodInfo = historyData[historyData.length - 1];
+            var periodStr = periodInfo.period || '';
+            var month = 1;
+            var weekday = 1;
+            
+            if (periodStr.length >= 6) {
+                var year = parseInt(periodStr.substring(0, 4));
+                var mon = parseInt(periodStr.substring(4, 6));
+                if (!isNaN(year) && !isNaN(mon)) {
+                    var date = new Date(year, mon - 1, 1);
+                    weekday = date.getDay();
+                    month = mon;
+                }
+            }
+            
+            featureVector.push(weekday);
+            featureVector.push(month);
             
             return {
                 features: featureVector,
@@ -4981,18 +5271,30 @@
             };
         }
         
+        function calculateSimpleMA(data) {
+            if (!data || data.length === 0) return 0;
+            return data.reduce(function(a, b) { return a + b; }, 0) / data.length;
+        }
+        
+        function calculateVolatility(data) {
+            if (!data || data.length < 2) return 0;
+            var mean = data.reduce(function(a, b) { return a + b; }, 0) / data.length;
+            var variance = data.map(function(v) { return Math.pow(v - mean, 2); }).reduce(function(a, b) { return a + b; }, 0) / data.length;
+            return Math.sqrt(variance);
+        }
+        
         // ============ 4. 自动分析钩子 ============
         var lastAnalyzedPeriod = '';
         
         function onNewDrawData(newData) {
             console.log('[AI] New draw data received:', newData.period);
             
+            verifyLastAnalysis(newData);
+            
             if (newData.period === lastAnalyzedPeriod) return;
             lastAnalyzedPeriod = newData.period;
             
-            initAIDatabase().then(function() {
-                return performAutoAnalysis(newData);
-            }).catch(function(err) {
+            performAutoAnalysis(newData).catch(function(err) {
                 console.error('[AI] Auto-analysis error:', err);
             });
         }
@@ -5023,7 +5325,10 @@
                         console.log('[AI] Period saved to Data Lake:', newPeriod.period);
                         updateAIStatsUI();
                         
-                        if (drawData.length >= 50) {
+                        if (drawData.length >= 50 && !aiTrainingCompleted) {
+                            startAutoTraining();
+                        } else if (aiTrainingCompleted && newPeriod.period !== aiLastTrainedPeriod) {
+                            aiTrainingCompleted = false;
                             startAutoTraining();
                         }
                     }).catch(function(err) {
@@ -5076,13 +5381,13 @@
         // ============ 5. 模式记忆与匹配 ============
         var storedPatterns = [];
         
-        function loadPatterns() {
+        function loadStoredPatterns() {
             getAllPatternsFromDB().then(function(patterns) {
                 storedPatterns = patterns;
-                console.log('[AI] Loaded ' + patterns.length + ' patterns');
+                console.log('[AI] Loaded ' + patterns.length + ' stored patterns');
                 updateAIStatsUI();
             }).catch(function(err) {
-                console.error('[AI] Failed to load patterns:', err);
+                console.error('[AI] Failed to load stored patterns:', err);
             });
         }
         
@@ -5118,7 +5423,7 @@
                     var hitRateEl = document.getElementById('aiHitRate');
                     if (hitRateEl) hitRateEl.textContent = msg.hitRate.toFixed(2);
                     
-                    loadPatterns();
+                    loadStoredPatterns();
                     runAIAnalysis();
                     
                     setTimeout(function() {
@@ -5145,8 +5450,16 @@
                         console.log('[AI] Patterns saved:', msg.patterns.length);
                     }
                     
+                    aiTrainingCompleted = true;
+                    if (drawData.length > 0) {
+                        aiLastTrainedPeriod = drawData[drawData.length - 1].period;
+                    }
+                    savePatterns();
+                    
                     updateAIStatsUI();
                     hideAutoTrainingStatus(msg.hitRate);
+                    
+                    setTimeout(autoBacktestIfNeeded, 2000);
                 }
             });
         }
@@ -5208,19 +5521,144 @@
         }
         
         function comparePatterns(a, b) {
-            if (!a || !b || a.length !== b.length) return 0;
+            if (!a || !b || a.length === 0 || b.length === 0) return 0;
             
+            var minLen = Math.min(a.length, b.length);
             var sum = 0;
-            for (var i = 0; i < a.length; i++) {
-                sum += Math.abs(a[i] - b[i]);
+            var maxPossible = 0;
+            
+            for (var i = 0; i < minLen; i++) {
+                var diff = Math.abs(a[i] - b[i]);
+                sum += diff;
+                
+                var weight = 1;
+                if (i < 42) {
+                    weight = 0.5;
+                } else if (i >= 42 && i < 47) {
+                    weight = 0.8;
+                } else if (i >= 47 && i < 50) {
+                    weight = 0.6;
+                } else {
+                    weight = 0.3;
+                }
+                maxPossible += 999 * weight;
             }
             
-            var maxDist = a.length * 999;
-            return 1 - (sum / maxDist);
+            return Math.max(0, 1 - (sum / (minLen * 500)));
         }
         
         // ============ 6. 原有AI分析模块 ============
         var aiAnalysisHistory = [];
+        var positionStats = {};
+        var lastAnalysisResults = null;
+        
+        function loadPositionStats() {
+            try {
+                var saved = localStorage.getItem('lotteryPositionStats');
+                if (saved) {
+                    positionStats = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.error('Failed to load position stats:', e);
+            }
+        }
+        
+        function savePositionStats() {
+            try {
+                localStorage.setItem('lotteryPositionStats', JSON.stringify(positionStats));
+            } catch (e) {
+                console.error('Failed to save position stats:', e);
+            }
+        }
+        
+        function getPositionStats(positionName) {
+            if (!positionName) return { total: 0, hits: 0, maxLossStreak: 0, maxWinStreak: 0, currentLossStreak: 0, currentWinStreak: 0 };
+            return positionStats[positionName] || { total: 0, hits: 0, maxLossStreak: 0, maxWinStreak: 0, currentLossStreak: 0, currentWinStreak: 0 };
+        }
+        
+        function updatePositionStats(positionName, isHit) {
+            if (!positionName) return;
+            
+            if (!positionStats[positionName]) {
+                positionStats[positionName] = { total: 0, hits: 0, maxLossStreak: 0, maxWinStreak: 0, currentLossStreak: 0, currentWinStreak: 0 };
+            }
+            
+            var stats = positionStats[positionName];
+            stats.total++;
+            
+            if (isHit) {
+                stats.hits++;
+                stats.currentWinStreak++;
+                stats.currentLossStreak = 0;
+                if (stats.currentWinStreak > stats.maxWinStreak) {
+                    stats.maxWinStreak = stats.currentWinStreak;
+                }
+            } else {
+                stats.currentLossStreak++;
+                stats.currentWinStreak = 0;
+                if (stats.currentLossStreak > stats.maxLossStreak) {
+                    stats.maxLossStreak = stats.currentLossStreak;
+                }
+            }
+            
+            savePositionStats();
+        }
+        
+        function clearPositionStats() {
+            positionStats = {};
+            savePositionStats();
+            
+            var aiRecommendationsEl = document.getElementById('aiRecommendations');
+            if (aiRecommendationsEl && aiRecommendationsEl.innerHTML) {
+                aiRecommendationsEl.innerHTML = '<p style="text-align:center;color:#58a6ff;">✓ 历史统计已清除</p>';
+            }
+            
+            console.log('[AI] Position stats cleared');
+        }
+        
+        function verifyLastAnalysis(lastDraw) {
+            if (!lastAnalysisResults || !lastDraw) {
+                console.log('[AI] verifyLastAnalysis skipped - no results or data');
+                return;
+            }
+            
+            var lastNumber = (lastDraw.num || lastDraw.number || '').toString();
+            if (lastNumber.length < 3) {
+                console.log('[AI] verifyLastAnalysis skipped - number too short:', lastNumber);
+                return;
+            }
+            lastNumber = parseInt(lastNumber.slice(-3), 10);
+            
+            console.log('[AI] verifyLastAnalysis called, lastNumber:', lastNumber);
+            
+            var verifiedCount = 0;
+            for (var i = 0; i < lastAnalysisResults.length; i++) {
+                var rec = lastAnalysisResults[i];
+                if (!rec.position) continue;
+                
+                var isHit = false;
+                if (rec.group) {
+                    if (Array.isArray(rec.group)) {
+                        isHit = rec.group.indexOf(lastNumber) !== -1;
+                    } else {
+                        isHit = rec.group.toString().indexOf(lastNumber) !== -1;
+                    }
+                }
+                
+                updatePositionStats(rec.position, isHit);
+                
+                verifiedCount++;
+                console.log('[AI] Verify position:', rec.position, 'group:', rec.group, 'isHit:', isHit);
+            }
+            
+            console.log('[AI] verifyLastAnalysis completed, verified:', verifiedCount, 'positions');
+            
+            if (lastAnalysisResults.length > 0) {
+                renderRecommendations({ recommendations: lastAnalysisResults });
+            }
+            
+            lastAnalysisResults = null;
+        }
         
         try {
         function loadAIAnalysisHistory() {
@@ -5243,12 +5681,13 @@
         }
         
         function runAIAnalysis() {
-            console.log('[AI] runAIAnalysis called');
+            console.log('[AI] runAIAnalysis called, currentMode:', currentMode, 'splitResults:', window.splitResults ? window.splitResults.length : 'null');
             
             var thresholdRound1 = parseInt(document.getElementById('aiThresholdRound1').value) || 60;
             var thresholdRound2 = parseInt(document.getElementById('aiThresholdRound2').value) || 60;
             var maxRetries = parseInt(document.getElementById('aiMaxRetries').value) || 50;
             
+            aiAnalysisRunning = true;
             analyzeWithThreshold(thresholdRound1, thresholdRound2, maxRetries, 0);
         }
         
@@ -5262,27 +5701,37 @@
             var aiAnalysisTimeEl = document.getElementById('aiAnalysisTime');
             
             if (currentMode !== 'split' || !window.splitResults || window.splitResults.length === 0) {
+                console.log('[AI] Not in split mode or no split results, showing no data');
                 if (aiResultEl) aiResultEl.style.display = 'none';
                 if (aiNoDataEl) aiNoDataEl.style.display = 'block';
+                aiAnalysisRunning = false;
                 return;
             }
             
             var results = analyzeSplitResults(window.splitResults);
             
             var bestScore = results.recommendations.length > 0 ? results.recommendations[0].score : 0;
+            console.log('[AI] Analysis results: recommendations:', results.recommendations.length, 'bestScore:', bestScore);
+            
+            aiNoDataEl.style.display = 'none';
+            aiResultEl.style.display = 'block';
+            aiAnalysisTimeEl.textContent = '分析时间: ' + new Date().toLocaleString();
+            
+            if (results.recommendations.length === 0) {
+                aiSummaryEl.innerHTML = '<p style="color:#f0883e;">⚠️ 当前无符合条件的推荐（评分均低于40分）</p>';
+                aiRecommendationsEl.innerHTML = '<p style="text-align:center;color:#8b949e;padding:20px;">暂无推荐结果</p>';
+                aiAnalysisRunning = false;
+                return;
+            }
+            
             var round1Pass = results.recommendations.length > 0 && results.recommendations[0].score >= threshold1;
             var round2Pass = window.splitResults.length >= 2 && results.recommendations.length > 0 && 
                               results.recommendations[0].score >= threshold2;
             
+            console.log('[AI] round1Pass:', round1Pass, 'round2Pass:', round2Pass);
+            
             if (round1Pass && (window.splitResults.length < 2 || round2Pass)) {
-                aiNoDataEl.style.display = 'none';
-                aiResultEl.style.display = 'block';
-                aiAnalysisTimeEl.textContent = '分析时间: ' + new Date().toLocaleString();
-                
-                var summaryHtml = '<p>📊 <strong>分析概况</strong>: 共分析 ' + results.allGroups.length + ' 组号码，';
-                summaryHtml += '推荐 ' + results.recommendations.length + ' 组关注。</p>';
-                summaryHtml += '<p>📈 <strong>数据周期</strong>: 最近 ' + drawData.length + ' 期开奖数据</p>';
-                summaryHtml += '<p>🎯 <strong>命中率预期</strong>: 推荐组平均命中率 ' + results.avgHitRate.toFixed(2) + '%</p>';
+                var summaryHtml = '';
                 if (retryCount > 0) {
                     summaryHtml += '<p>🔄 <strong>重试次数</strong>: ' + retryCount + ' 次</p>';
                 }
@@ -5290,6 +5739,8 @@
                 aiSummaryEl.innerHTML = summaryHtml;
                 
                 renderRecommendations(results);
+                
+                lastAnalysisResults = results.recommendations.slice();
                 
                 aiAnalysisHistory.push({
                     time: new Date().toISOString(),
@@ -5304,24 +5755,20 @@
                 
                 saveAIAnalysisHistory();
                 
+                aiAnalysisRunning = false;
                 return;
             }
             
             if (retryCount >= maxRetries) {
-                aiNoDataEl.style.display = 'none';
-                aiResultEl.style.display = 'block';
-                aiAnalysisTimeEl.textContent = '分析时间: ' + new Date().toLocaleString();
                 aiSummaryEl.innerHTML = '<p style="color:#f0883e;">⚠️ 已达到最大重试次数 (' + maxRetries + '次)，当前最佳评分: ' + bestScore + '分</p>' +
                                         '<p style="font-size:11px;color:#8b949e;">建议降低评分阈值或检查数据质量</p>';
                 
-                var fallbackResults = analyzeSplitResults(window.splitResults);
-                renderRecommendations(fallbackResults);
+                renderRecommendations(results);
+                
+                aiAnalysisRunning = false;
                 return;
             }
             
-            if (aiResultEl) aiResultEl.style.display = 'block';
-            aiNoDataEl.style.display = 'none';
-            aiAnalysisTimeEl.textContent = '分析时间: ' + new Date().toLocaleString();
             aiSummaryEl.innerHTML = '<p style="color:#58a6ff;">🔄 正在重试分割... (第 ' + (retryCount + 1) + ' 次，当前最佳: ' + bestScore + '分，目标: ' + 
                                      (window.splitResults.length >= 2 ? threshold2 : threshold1) + '分)</p>';
             aiRecommendationsEl.innerHTML = '<div style="text-align:center;padding:20px;color:#8b949e;"><div class="retry-status" style="justify-content:center;"><div class="retry-dot"></div><span>重新分割中...</span></div></div>';
@@ -5342,8 +5789,12 @@
                 }
                 
                 setTimeout(function() {
-                    analyzeWithThreshold(threshold1, threshold2, maxRetries, retryCount + 1);
-                }, 500);
+                    if (retryCount + 1 <= maxRetries) {
+                        analyzeWithThreshold(threshold1, threshold2, maxRetries, retryCount + 1);
+                    } else {
+                        aiAnalysisRunning = false;
+                    }
+                }, 1500);
             }, 100);
         }
         
@@ -5351,6 +5802,8 @@
             var aiRecommendationsEl = document.getElementById('aiRecommendations');
             
             var recHtml = '';
+            var lastPosition = '';
+            
             for (var i = 0; i < results.recommendations.length; i++) {
                 var rec = results.recommendations[i];
                 var scoreClass = rec.score >= 70 ? '' : (rec.score >= 50 ? 'medium' : 'low');
@@ -5361,6 +5814,14 @@
                 var trendScoreClass = rec.trendScore >= 80 ? 'high' : (rec.trendScore >= 50 ? 'medium' : 'low');
                 var recentPerfClass = rec.recentPerformance >= 70 ? 'high' : (rec.recentPerformance >= 40 ? 'medium' : 'low');
                 var patternMatchClass = rec.patternMatchScore >= 70 ? 'high' : (rec.patternMatchScore >= 40 ? 'medium' : 'low');
+                
+                if (rec.position && rec.position !== lastPosition) {
+                    recHtml += '<div class="ai-position-label">' + rec.position + '</div>';
+                    lastPosition = rec.position;
+                }
+                
+                var stats = getPositionStats(rec.position);
+                var hitRatePercent = stats.total > 0 ? (stats.hits / stats.total * 100).toFixed(1) : 0;
                 
                 recHtml += '<div class="ai-rec-item ' + borderClass + '">';
                 recHtml += '<div class="ai-rec-header">';
@@ -5404,6 +5865,15 @@
                 recHtml += '</div>';
                 
                 recHtml += '</div>';
+                
+                recHtml += '<div class="ai-rec-history">';
+                recHtml += '<span class="ai-history-item">分析' + stats.total + '次</span>';
+                recHtml += '<span class="ai-history-item">命中' + stats.hits + '次</span>';
+                recHtml += '<span class="ai-history-item">命中率' + hitRatePercent + '%</span>';
+                recHtml += '<span class="ai-history-item">连挂' + stats.maxLossStreak + '次</span>';
+                recHtml += '<span class="ai-history-item">连中' + stats.maxWinStreak + '次</span>';
+                recHtml += '</div>';
+                
                 recHtml += '</div>';
             }
             
@@ -5423,26 +5893,22 @@
             
             var allGroups = [];
             var labels = [];
+            var roundIndices = [];
             
             for (var i = 0; i < splitResults.length; i++) {
                 var r = splitResults[i];
-                console.log('[AI] Split result ' + i + ':', {
-                    round: r.round,
-                    type: r.type,
-                    groupLength: r.group ? r.group.length : 0,
-                    allGroupsLength: r.allGroups ? r.allGroups.length : 0,
-                    bestIdx: r.bestIdx
-                });
                 
                 var roundLabel = String.fromCharCode(65 + i);
                 
                 if (r.allGroups && r.allGroups.length > 4) {
                     allGroups.push(r.group);
                     labels.push(roundLabel + (r.bestIdx + 1));
+                    roundIndices.push({ round: i + 1, rank: 1 });
                 } else if (r.allGroups) {
                     for (var j = 0; j < r.allGroups.length; j++) {
                         allGroups.push(r.allGroups[j]);
                         labels.push(roundLabel + (j + 1));
+                        roundIndices.push({ round: i + 1, rank: j + 1 });
                     }
                 }
             }
@@ -5453,31 +5919,51 @@
             for (var i = 0; i < allGroups.length; i++) {
                 var group = allGroups[i];
                 var label = labels[i];
+                var roundInfo = roundIndices[i];
                 
                 var scores = calculateGroupScores(group, i);
                 
-                if (scores.totalScore >= 40) {
-                    recommendations.push({
-                        label: label,
-                        group: group,
-                        chartIdx: i,
-                        score: Math.round(scores.totalScore),
-                        hitRate: scores.hitRate,
-                        streakRate: scores.streakRate,
-                        trendScore: scores.trendScore,
-                        recentPerformance: scores.recentPerformance,
-                        patternMatchScore: scores.patternMatchScore
-                    });
-                }
+                recommendations.push({
+                    label: label,
+                    group: group,
+                    chartIdx: i,
+                    position: '',
+                    round: roundInfo.round,
+                    rank: roundInfo.rank,
+                    score: Math.round(scores.totalScore),
+                    hitRate: scores.hitRate,
+                    streakRate: scores.streakRate,
+                    trendScore: scores.trendScore,
+                    recentPerformance: scores.recentPerformance,
+                    patternMatchScore: scores.patternMatchScore,
+                    originalIndex: i
+                });
                 
                 totalHitRate += scores.hitRate;
             }
             
-            recommendations.sort(function(a, b) { return b.score - a.score; });
+            var round1Groups = recommendations.filter(function(r) { return r.round === 1; });
+            var round2Groups = recommendations.filter(function(r) { return r.round === 2; });
+            
+            round1Groups.sort(function(a, b) { return b.score - a.score; });
+            round2Groups.sort(function(a, b) { return b.score - a.score; });
+            
+            if (round1Groups.length > 0) {
+                round1Groups[0].position = '第一次分割最高评分';
+            }
+            
+            var round2RankNames = ['第二次分割最高评分', '第二次分割第二评分', '第二次分割第三评分', '第二次分割第四评分'];
+            for (var j = 0; j < round2Groups.length && j < 4; j++) {
+                round2Groups[j].position = round2RankNames[j];
+            }
+            
+            var finalRecommendations = round1Groups.concat(round2Groups).filter(function(r) {
+                return r.score >= 40;
+            });
             
             return {
                 allGroups: allGroups,
-                recommendations: recommendations.slice(0, 10),
+                recommendations: finalRecommendations.slice(0, 10),
                 avgHitRate: allGroups.length > 0 ? totalHitRate / allGroups.length : 0
             };
         }
@@ -5980,22 +6466,28 @@
         }
         
         function calculatePatternMatch(group) {
-            if (aiAnalysisHistory.length < 5) return 50;
+            if (aiAnalysisHistory.length < 5) return 40;
             
             var recentHistory = aiAnalysisHistory.slice(-10);
             var totalScore = 0;
             var count = 0;
             
             for (var i = 0; i < recentHistory.length; i++) {
-                var historyRecs = recentHistory[i].recommendations;
+                var historyItem = recentHistory[i];
+                var historyRecs = historyItem && historyItem.recommendations ? historyItem.recommendations : [];
                 for (var j = 0; j < historyRecs.length; j++) {
-                    var historyGroup = historyRecs[j].group;
+                    var historyRec = historyRecs[j];
+                    if (!historyRec || !historyRec.group) continue;
+                    var historyGroup = historyRec.group;
                     var similarity = calculateGroupSimilarity(group, historyGroup);
                     
                     if (similarity > 0.3) {
                         var weight = (i + 1) / recentHistory.length;
-                        var scoreBonus = historyRecs[j].score > 60 ? 1.5 : (historyRecs[j].score > 40 ? 1.2 : 1);
-                        totalScore += similarity * weight * scoreBonus * 100;
+                        var scoreBonus = historyRec.score > 60 ? 1.3 : (historyRec.score > 40 ? 1.1 : 1);
+                        var normalizedScore = similarity * 100;
+                        var penalty = Math.max(0, (group.length - 100) / 800);
+                        normalizedScore = normalizedScore * (1 - penalty * 0.3);
+                        totalScore += normalizedScore * weight * scoreBonus;
                         count++;
                     }
                 }
@@ -6005,20 +6497,19 @@
             
             var avgScore = totalScore / count;
             
-            var storedPatterns = JSON.parse(localStorage.getItem('aiPatterns') || '[]');
-            if (storedPatterns.length > 0) {
+            if (aiPatterns.length > 0) {
                 var bestPatternMatch = 0;
-                for (var i = 0; i < storedPatterns.length; i++) {
-                    var pattern = storedPatterns[i];
+                for (var i = 0; i < aiPatterns.length; i++) {
+                    var pattern = aiPatterns[i];
                     if (pattern.feature && pattern.feature.group) {
                         var patternSim = calculateGroupSimilarity(group, pattern.feature.group);
-                        if (patternSim > bestPatternMatch && pattern.score > 60) {
+                        if (patternSim > bestPatternMatch && (pattern.score || 0) > 60) {
                             bestPatternMatch = patternSim;
                         }
                     }
                 }
                 if (bestPatternMatch > 0) {
-                    avgScore = avgScore * 0.6 + bestPatternMatch * 40;
+                    avgScore = avgScore * 0.7 + bestPatternMatch * 30;
                 }
             }
             
