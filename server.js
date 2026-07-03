@@ -8,8 +8,30 @@ const https = require('https');
 const app = express();
 const PORT = 3000;
 
-const DB_DIR = 'D:\\lottery_data';
+const DB_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DB_DIR, 'lottery_data.json');
+
+try {
+    if (!fs.existsSync(DB_DIR)) {
+        fs.mkdirSync(DB_DIR, { recursive: true });
+        console.log('数据目录已创建:', DB_DIR);
+    }
+    if (!fs.existsSync(DATA_FILE)) {
+        fs.writeFileSync(DATA_FILE, JSON.stringify({
+            drawData: [],
+            patterns: [],
+            positionStats: {},
+            analysisHistory: [],
+            trainingStatus: { completed: false, lastPeriod: '' },
+            dataLake: [],
+            splitConfig: null
+        }, null, 2));
+        console.log('数据文件已创建:', DATA_FILE);
+    }
+} catch (e) {
+    console.error('无法创建数据目录或文件:', e.message);
+    process.exit(1);
+}
 
 console.log('数据目录:', DB_DIR);
 console.log('数据文件:', DATA_FILE);
@@ -19,7 +41,9 @@ let dataStore = {
     patterns: [],
     positionStats: {},
     analysisHistory: [],
-    trainingStatus: { completed: false, lastPeriod: '' }
+    trainingStatus: { completed: false, lastPeriod: '' },
+    dataLake: [],
+    splitConfig: null
 };
 
 function loadData() {
@@ -139,6 +163,36 @@ app.post('/api/training-status', (req, res) => {
         completed: completed || false,
         lastPeriod: lastPeriod || ''
     };
+    saveData();
+    res.json({ success: true });
+});
+
+app.get('/api/data-lake', (req, res) => {
+    res.json(dataStore.dataLake || []);
+});
+
+app.post('/api/data-lake', (req, res) => {
+    const dataLake = req.body;
+    if (!Array.isArray(dataLake)) {
+        res.status(400).json({ error: '数据格式错误' });
+        return;
+    }
+    dataStore.dataLake = dataLake;
+    saveData();
+    res.json({ success: true, count: dataLake.length });
+});
+
+app.get('/api/split-config', (req, res) => {
+    res.json(dataStore.splitConfig || null);
+});
+
+app.post('/api/split-config', (req, res) => {
+    const splitConfig = req.body;
+    if (!splitConfig || typeof splitConfig !== 'object') {
+        res.status(400).json({ error: '数据格式错误' });
+        return;
+    }
+    dataStore.splitConfig = splitConfig;
     saveData();
     res.json({ success: true });
 });

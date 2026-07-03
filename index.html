@@ -396,6 +396,17 @@
                 <div class="btn-row">
                     <button class="btn btn-green" onclick="openSplitConfig()">开始智能分割</button>
                 </div>
+                <div id="autoSplitToggleWrap" style="margin-top:8px;padding:8px;background:#0d1117;border:1px solid #30363d;border-radius:4px;display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <div style="color:#c9d1d9;font-size:11px;font-weight:bold;">开奖自动分割</div>
+                        <div style="color:#8b949e;font-size:10px;margin-top:2px;" id="autoSplitStatusText">未启用 - 首次手动分割后可开启</div>
+                    </div>
+                    <label style="position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;flex-shrink:0;">
+                        <input type="checkbox" id="autoSplitToggle" onchange="toggleAutoSplit(this.checked)" style="opacity:0;width:0;height:0;">
+                        <span id="autoSplitSlider" style="position:absolute;top:0;left:0;right:0;bottom:0;background:#30363d;border-radius:11px;transition:0.3s;"></span>
+                        <span id="autoSplitKnob" style="position:absolute;top:2px;left:2px;width:18px;height:18px;background:#8b949e;border-radius:50%;transition:0.3s;"></span>
+                    </label>
+                </div>
                 <div id="autoResult"></div>
             </div>
 
@@ -1612,6 +1623,8 @@
             clearHitCache();
             document.getElementById('drawCount').textContent = drawData.length + '期';
             
+            fillDataLakeFromDrawData();
+            
             var posName = posType === 'front' ? '前三' : (posType === 'middle' ? '中三' : '后三');
             document.getElementById('status').textContent = 
                 '已导入' + drawData.length + '期开奖数据 | 定位: ' + posName;
@@ -1847,6 +1860,7 @@
                 loadTrendList();
                 updateSplitRows();
                 updateAIStatsUI();
+                loadAutoSplitState();
             }, 100);
             
             setTimeout(function() {
@@ -1919,7 +1933,8 @@
                 aiPatterns && aiPatterns.length > 0 ? syncPatternsToBackend() : Promise.resolve(),
                 positionStats && Object.keys(positionStats).length > 0 ? syncPositionStatsToBackend() : Promise.resolve(),
                 aiAnalysisHistory && aiAnalysisHistory.length > 0 ? syncAnalysisHistoryToBackend() : Promise.resolve(),
-                syncTrainingStatusToBackend()
+                syncTrainingStatusToBackend(),
+                aiDataLake && aiDataLake.length > 0 ? syncDataLakeToBackend() : Promise.resolve()
             ]).then(function() {
                 console.log('[Backend] 所有数据同步完成');
             }).catch(function(err) {
@@ -2751,6 +2766,7 @@
             }
             
             localStorage.setItem('splitConfig', JSON.stringify(config));
+            syncSplitConfigToBackend(config);
         }
         
         // ==================== 分割设置弹窗 ====================
@@ -2867,6 +2883,109 @@
         var currentSplitMode = 'auto'; // 当前分割模式
         var manualFirstResult = null; // 手动模式下第一次分割的结果
         
+        // ==================== 开奖自动分割 ====================
+        var autoSplitEnabled = false; // 自动分割开关
+        var autoSplitTemplateReady = false; // 模板是否已就绪（首次手动分割完成后置true）
+        var autoSplitRunning = false; // 防止重复触发
+        
+        function loadAutoSplitState() {
+            try {
+                autoSplitEnabled = localStorage.getItem('autoSplitEnabled') === 'true';
+                autoSplitTemplateReady = localStorage.getItem('autoSplitTemplateReady') === 'true';
+            } catch (e) {}
+            updateAutoSplitUI();
+        }
+        
+        function saveAutoSplitState() {
+            try {
+                localStorage.setItem('autoSplitEnabled', autoSplitEnabled ? 'true' : 'false');
+                localStorage.setItem('autoSplitTemplateReady', autoSplitTemplateReady ? 'true' : 'false');
+            } catch (e) {}
+        }
+        
+        function updateAutoSplitUI() {
+            var toggle = document.getElementById('autoSplitToggle');
+            var slider = document.getElementById('autoSplitSlider');
+            var knob = document.getElementById('autoSplitKnob');
+            var statusText = document.getElementById('autoSplitStatusText');
+            if (!toggle) return;
+            
+            toggle.checked = autoSplitEnabled;
+            
+            if (autoSplitEnabled) {
+                slider.style.background = '#238636';
+                knob.style.left = '20px';
+                knob.style.background = '#fff';
+                statusText.textContent = '已启用 - 开奖更新后自动分割';
+                statusText.style.color = '#238636';
+            } else {
+                slider.style.background = '#30363d';
+                knob.style.left = '2px';
+                knob.style.background = '#8b949e';
+                if (autoSplitTemplateReady) {
+                    statusText.textContent = '未启用 - 模板已就绪，可开启';
+                    statusText.style.color = '#8b949e';
+                } else {
+                    statusText.textContent = '未启用 - 首次手动分割后可开启';
+                    statusText.style.color = '#8b949e';
+                }
+            }
+        }
+        
+        function toggleAutoSplit(enabled) {
+            if (enabled && !autoSplitTemplateReady) {
+                alert('请先手动执行一次智能分割，系统会记住你的设置作为模板');
+                document.getElementById('autoSplitToggle').checked = false;
+                return;
+            }
+            autoSplitEnabled = enabled;
+            saveAutoSplitState();
+            updateAutoSplitUI();
+            console.log('[AutoSplit] 自动分割已' + (enabled ? '开启' : '关闭'));
+        }
+        
+        // 使用模板自动执行分割
+        function runAutoSplitWithTemplate() {
+            if (autoSplitRunning) {
+                console.log('[AutoSplit] 自动分割正在执行中，跳过本次触发');
+                return;
+            }
+            if (!autoSplitTemplateReady) {
+                console.log('[AutoSplit] 模板未就绪，跳过自动分割');
+                return;
+            }
+            
+            var savedConfig = loadSplitConfig();
+            if (!savedConfig) {
+                console.log('[AutoSplit] 未找到保存的分割配置，跳过');
+                return;
+            }
+            
+            console.log('[AutoSplit] 开始使用模板自动分割');
+            autoSplitRunning = true;
+            
+            try {
+                // 将保存的配置加载到DOM
+                if (savedConfig.splitMode) {
+                    document.getElementById('splitMode').value = savedConfig.splitMode;
+                }
+                document.getElementById('matchMode').value = savedConfig.matchMode;
+                document.getElementById('splitCount').value = savedConfig.splitCount;
+                
+                // 生成分割行并填充保存的配置
+                updateSplitRows(savedConfig);
+                
+                // 延迟执行，确保DOM已更新
+                setTimeout(function() {
+                    startAutoSplit(true);
+                    autoSplitRunning = false;
+                }, 200);
+            } catch (e) {
+                console.error('[AutoSplit] 自动分割失败:', e);
+                autoSplitRunning = false;
+            }
+        }
+        
         function updateSplitModeUI() {
             var mode = document.getElementById('splitMode').value;
             currentSplitMode = mode;
@@ -2877,7 +2996,7 @@
             console.log('分割已停止');
         }
         
-        function startAutoSplit() {
+        function startAutoSplit(isAutoTriggered) {
             // 重置停止标志
             stopSplit = false;
             
@@ -2886,6 +3005,14 @@
             
             // 保存当前配置
             saveSplitConfig();
+            
+            // 手动执行时，标记模板已就绪
+            if (!isAutoTriggered) {
+                autoSplitTemplateReady = true;
+                saveAutoSplitState();
+                updateAutoSplitUI();
+                console.log('[AutoSplit] 模板已保存，可开启自动分割');
+            }
             
             var count = parseInt(document.getElementById('splitCount').value);
             var matchMode = document.getElementById('matchMode').value;
@@ -3954,6 +4081,8 @@
                 // 保存到本地存储
                 saveToLocalStorage();
                 
+                fillDataLakeFromDrawData();
+                
                 document.getElementById('drawInput').value = formatDrawData(drawData);
                 document.getElementById('drawCount').textContent = drawData.length + '期';
                 
@@ -4380,6 +4509,34 @@
             });
         }
         
+        function syncDataLakeToBackend() {
+            if (!backendEnabled || !aiDataLake || aiDataLake.length === 0) return Promise.resolve();
+            
+            return backendApi('/api/data-lake', {
+                method: 'POST',
+                body: aiDataLake
+            }).then(function(res) {
+                console.log('[Backend] 数据湖已同步:', res.count, '条');
+                return res;
+            }).catch(function(err) {
+                console.warn('[Backend] 数据湖同步失败:', err.message);
+            });
+        }
+        
+        function syncSplitConfigToBackend(config) {
+            if (!backendEnabled || !config) return Promise.resolve();
+            
+            return backendApi('/api/split-config', {
+                method: 'POST',
+                body: config
+            }).then(function(res) {
+                console.log('[Backend] 分割模板已同步');
+                return res;
+            }).catch(function(err) {
+                console.warn('[Backend] 分割模板同步失败:', err.message);
+            });
+        }
+        
         function loadDataFromBackend() {
             if (!backendEnabled) return Promise.resolve(false);
             
@@ -4390,13 +4547,17 @@
                 backendApi('/api/patterns').catch(function() { return []; }),
                 backendApi('/api/position-stats').catch(function() { return {}; }),
                 backendApi('/api/analysis-history').catch(function() { return []; }),
-                backendApi('/api/training-status').catch(function() { return { completed: false, lastPeriod: '' }; })
+                backendApi('/api/training-status').catch(function() { return { completed: false, lastPeriod: '' }; }),
+                backendApi('/api/data-lake').catch(function() { return []; }),
+                backendApi('/api/split-config').catch(function() { return null; })
             ]).then(function(results) {
                 var drawDataBackend = results[0];
                 var patternsBackend = results[1];
                 var positionStatsBackend = results[2];
                 var analysisHistoryBackend = results[3];
                 var trainingStatusBackend = results[4];
+                var dataLakeBackend = results[5];
+                var splitConfigBackend = results[6];
                 
                 if (drawDataBackend && drawDataBackend.length > 0) {
                     console.log('[Backend] 加载开奖数据:', drawDataBackend.length, '条');
@@ -4438,6 +4599,20 @@
                     aiTrainingCompleted = trainingStatusBackend.completed;
                     aiLastTrainedPeriod = trainingStatusBackend.lastPeriod || '';
                     console.log('[Backend] 训练状态已加载: completed=', aiTrainingCompleted);
+                }
+                
+                if (dataLakeBackend && dataLakeBackend.length > 0) {
+                    console.log('[Backend] 加载数据湖:', dataLakeBackend.length, '条');
+                    if (!aiDataLake || aiDataLake.length < dataLakeBackend.length) {
+                        aiDataLake = dataLakeBackend;
+                        saveDataLake();
+                        console.log('[Backend] 数据湖已更新');
+                    }
+                }
+                
+                if (splitConfigBackend) {
+                    console.log('[Backend] 加载分割模板');
+                    localStorage.setItem('splitConfig', JSON.stringify(splitConfigBackend));
                 }
                 
                 return true;
@@ -5547,10 +5722,19 @@
         function onNewDrawData(newData) {
             console.log('[AI] New draw data received:', newData.period);
             
+            // 1. 验证上一次分析结果是否命中（自动同步统计）
             verifyLastAnalysis(newData);
             
             if (newData.period === lastAnalyzedPeriod) return;
             lastAnalyzedPeriod = newData.period;
+            
+            // 2. 如果开启了自动分割，使用模板自动执行分割
+            if (autoSplitEnabled && autoSplitTemplateReady) {
+                console.log('[AutoSplit] 检测到新开奖数据，触发自动分割');
+                setTimeout(function() {
+                    runAutoSplitWithTemplate();
+                }, 1000);
+            }
             
             performAutoAnalysis(newData).catch(function(err) {
                 console.error('[AI] Auto-analysis error:', err);
