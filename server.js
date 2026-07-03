@@ -1,0 +1,211 @@
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const cors = require('cors');
+const http = require('http');
+const https = require('https');
+
+const app = express();
+const PORT = 3000;
+
+const DB_DIR = 'D:\\lottery_data';
+const DATA_FILE = path.join(DB_DIR, 'lottery_data.json');
+
+console.log('数据目录:', DB_DIR);
+console.log('数据文件:', DATA_FILE);
+
+let dataStore = {
+    drawData: [],
+    patterns: [],
+    positionStats: {},
+    analysisHistory: [],
+    trainingStatus: { completed: false, lastPeriod: '' }
+};
+
+function loadData() {
+    try {
+        if (fs.existsSync(DATA_FILE)) {
+            const raw = fs.readFileSync(DATA_FILE, 'utf8');
+            dataStore = JSON.parse(raw);
+            console.log('数据已加载:', DATA_FILE);
+            console.log('  开奖数据:', dataStore.drawData.length, '条');
+            console.log('  模式库:', dataStore.patterns.length, '条');
+            console.log('  位置统计:', Object.keys(dataStore.positionStats).length, '个');
+        } else {
+            saveData();
+            console.log('数据文件已创建:', DATA_FILE);
+        }
+    } catch (e) {
+        console.error('加载数据失败:', e.message);
+    }
+}
+
+function saveData() {
+    try {
+        const json = JSON.stringify(dataStore, null, 2);
+        fs.writeFileSync(DATA_FILE, json, 'utf8');
+        return true;
+    } catch (e) {
+        console.error('保存数据失败:', e.message);
+        return false;
+    }
+}
+
+loadData();
+
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.static(path.join(__dirname)));
+
+app.get('/api/draw-data', (req, res) => {
+    res.json(dataStore.drawData || []);
+});
+
+app.post('/api/draw-data', (req, res) => {
+    const data = req.body;
+    if (!Array.isArray(data) || data.length === 0) {
+        res.status(400).json({ error: '数据格式错误' });
+        return;
+    }
+
+    const periodMap = {};
+    (dataStore.drawData || []).forEach(item => {
+        periodMap[item.period] = item;
+    });
+    data.forEach(item => {
+        periodMap[item.period] = item;
+    });
+    dataStore.drawData = Object.values(periodMap).sort((a, b) => a.period.localeCompare(b.period));
+    
+    saveData();
+    res.json({ success: true, count: dataStore.drawData.length });
+});
+
+app.get('/api/patterns', (req, res) => {
+    res.json(dataStore.patterns || []);
+});
+
+app.post('/api/patterns', (req, res) => {
+    const patterns = req.body;
+    if (!Array.isArray(patterns)) {
+        res.status(400).json({ error: '数据格式错误' });
+        return;
+    }
+
+    dataStore.patterns = patterns;
+    saveData();
+    res.json({ success: true, count: patterns.length });
+});
+
+app.get('/api/position-stats', (req, res) => {
+    res.json(dataStore.positionStats || {});
+});
+
+app.post('/api/position-stats', (req, res) => {
+    const stats = req.body;
+    if (!stats || typeof stats !== 'object') {
+        res.status(400).json({ error: '数据格式错误' });
+        return;
+    }
+
+    dataStore.positionStats = stats;
+    saveData();
+    res.json({ success: true, count: Object.keys(stats).length });
+});
+
+app.get('/api/analysis-history', (req, res) => {
+    res.json((dataStore.analysisHistory || []).slice(0, 100));
+});
+
+app.post('/api/analysis-history', (req, res) => {
+    const history = req.body;
+    if (!Array.isArray(history)) {
+        res.status(400).json({ error: '数据格式错误' });
+        return;
+    }
+
+    dataStore.analysisHistory = history;
+    saveData();
+    res.json({ success: true, count: history.length });
+});
+
+app.get('/api/training-status', (req, res) => {
+    res.json(dataStore.trainingStatus || { completed: false, lastPeriod: '' });
+});
+
+app.post('/api/training-status', (req, res) => {
+    const { completed, lastPeriod } = req.body;
+    dataStore.trainingStatus = {
+        completed: completed || false,
+        lastPeriod: lastPeriod || ''
+    };
+    saveData();
+    res.json({ success: true });
+});
+
+app.get('/api/export', (req, res) => {
+    const result = {
+        ...dataStore,
+        exportTime: Date.now()
+    };
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename=lottery_backup.json');
+    res.send(JSON.stringify(result, null, 2));
+});
+
+app.post('/api/import', (req, res) => {
+    const data = req.body;
+    if (!data || typeof data !== 'object') {
+        res.status(400).json({ error: '数据格式错误' });
+        return;
+    }
+
+    if (data.drawData) dataStore.drawData = data.drawData;
+    if (data.patterns) dataStore.patterns = data.patterns;
+    if (data.positionStats) dataStore.positionStats = data.positionStats;
+    if (data.analysisHistory) dataStore.analysisHistory = data.analysisHistory;
+    if (data.trainingStatus) dataStore.trainingStatus = data.trainingStatus;
+
+    saveData();
+    res.json({ success: true });
+});
+
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', dataFile: DATA_FILE, drawDataCount: dataStore.drawData.length });
+});
+
+app.get('/api/proxy', (req, res) => {
+    const url = req.query.url;
+    if (!url) {
+        res.status(400).json({ error: 'URL参数缺失' });
+        return;
+    }
+
+    const protocol = url.startsWith('https') ? https : http;
+    
+    protocol.get(url, (response) => {
+        let data = '';
+        response.on('data', (chunk) => {
+            data += chunk;
+        });
+        response.on('end', () => {
+            res.setHeader('Content-Type', response.headers['content-type'] || 'application/json');
+            res.send(data);
+        });
+    }).on('error', (error) => {
+        console.error('代理请求失败:', error.message);
+        res.status(500).json({ error: '代理请求失败: ' + error.message });
+    });
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log('========================================');
+    console.log('  瞌睡虫V5趋势分析 - 后端服务');
+    console.log('========================================');
+    console.log('  服务地址: http://localhost:' + PORT);
+    console.log('  数据目录: ' + DB_DIR);
+    console.log('  数据文件: ' + DATA_FILE);
+    console.log('========================================');
+    console.log('  请在浏览器中打开: http://localhost:' + PORT);
+    console.log('========================================');
+});

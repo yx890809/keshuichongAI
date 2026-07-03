@@ -1,32 +1,17 @@
 {
     "name": "lottery-analyzer",
     "version": "5.0.0",
-    "main": "main.js",
+    "main": "server.js",
     "scripts": {
-        "start": "electron .",
-        "build": "electron-builder",
-        "dist": "electron-builder --win --x64"
+        "start": "node server.js",
+        "server": "node server.js",
+        "install-deps": "npm install express cors"
     },
-    "build": {
-        "appId": "com.example.lottery",
-        "productName": "瞌睡虫V5趋势分析软件",
-        "directories": { "output": "dist" },
-        "files": ["index.html", "main.js", "ai_system.js"],
-        "win": {
-            "target": { "target": "nsis", "arch": ["x64"] },
-            "requestExecutionLevel": "highestAvailable"
-        },
-        "nsis": {
-            "oneClick": false,
-            "perMachine": true,
-            "allowToChangeInstallationDirectory": true,
-            "createDesktopShortcut": true,
-            "createStartMenuShortcut": true
-        }
+    "dependencies": {
+        "cors": "^2.8.6",
+        "express": "^4.22.2"
     },
-    "devDependencies": {
-        "electron": "^28.3.3",
-        "electron-builder": "^24.13.3"
-    },
-    "engines": { "node": ">=18.0.0 <25.0.0" }
+    "engines": {
+        "node": ">=14.0.0"
+    }
 }

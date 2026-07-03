@@ -1856,19 +1856,41 @@
             }, 150);
             
             setTimeout(function() {
-                initAIDatabase().then(function() {
-                    console.log('[AI] Database initialized');
-                    
-                    if (drawData.length > 0 && aiAnalysisHistory.length > 0) {
-                        var lastHistory = aiAnalysisHistory[aiAnalysisHistory.length - 1];
-                        if (lastHistory && lastHistory.recommendations) {
-                            lastAnalysisResults = lastHistory.recommendations.slice();
-                            console.log('[AI] Restored last analysis results:', lastAnalysisResults.length, 'recommendations');
-                            renderRecommendations({ recommendations: lastAnalysisResults });
-                        }
+                checkBackendAvailable().then(function(available) {
+                    if (available) {
+                        loadDataFromBackend().then(function() {
+                            if (drawData.length > 0 && aiAnalysisHistory.length > 0) {
+                                var lastHistory = aiAnalysisHistory[aiAnalysisHistory.length - 1];
+                                if (lastHistory && lastHistory.recommendations) {
+                                    lastAnalysisResults = lastHistory.recommendations.slice();
+                                    console.log('[AI] Restored last analysis results:', lastAnalysisResults.length, 'recommendations');
+                                    renderRecommendations({ recommendations: lastAnalysisResults });
+                                }
+                            }
+                            
+                            initAIDatabase().then(function() {
+                                console.log('[AI] Database initialized');
+                                syncAllDataToBackend();
+                            }).catch(function(err) {
+                                console.error('[AI] Failed to initialize database:', err);
+                            });
+                        });
+                    } else {
+                        initAIDatabase().then(function() {
+                            console.log('[AI] Database initialized');
+                            
+                            if (drawData.length > 0 && aiAnalysisHistory.length > 0) {
+                                var lastHistory = aiAnalysisHistory[aiAnalysisHistory.length - 1];
+                                if (lastHistory && lastHistory.recommendations) {
+                                    lastAnalysisResults = lastHistory.recommendations.slice();
+                                    console.log('[AI] Restored last analysis results:', lastAnalysisResults.length, 'recommendations');
+                                    renderRecommendations({ recommendations: lastAnalysisResults });
+                                }
+                            }
+                        }).catch(function(err) {
+                            console.error('[AI] Failed to initialize database:', err);
+                        });
                     }
-                }).catch(function(err) {
-                    console.error('[AI] Failed to initialize database:', err);
                 });
             }, 500);
             
@@ -1879,11 +1901,31 @@
                     }
                     saveAIAnalysisHistory();
                     savePositionStats();
+                    
+                    if (backendEnabled) {
+                        syncAllDataToBackend();
+                    }
                 } catch (err) {
                     console.error('[AI] Error saving on unload:', err);
                 }
             });
         };
+        
+        function syncAllDataToBackend() {
+            if (!backendEnabled) return;
+            
+            Promise.all([
+                drawData && drawData.length > 0 ? syncDrawDataToBackend() : Promise.resolve(),
+                aiPatterns && aiPatterns.length > 0 ? syncPatternsToBackend() : Promise.resolve(),
+                positionStats && Object.keys(positionStats).length > 0 ? syncPositionStatsToBackend() : Promise.resolve(),
+                aiAnalysisHistory && aiAnalysisHistory.length > 0 ? syncAnalysisHistoryToBackend() : Promise.resolve(),
+                syncTrainingStatusToBackend()
+            ]).then(function() {
+                console.log('[Backend] 所有数据同步完成');
+            }).catch(function(err) {
+                console.warn('[Backend] 数据同步失败:', err.message);
+            });
+        }
         
         function loadFromLocalStorage() {
             try {
@@ -3689,7 +3731,7 @@
                 statusEl.style.color = '#58a6ff';
             }
             
-            var proxyUrl = 'http://localhost:8888/?url=' + encodeURIComponent(url);
+            var proxyUrl = '/api/proxy?url=' + encodeURIComponent(url);
             console.log('[' + new Date().toLocaleTimeString() + '] 请求URL:', proxyUrl);
             
             fetch(proxyUrl, {
@@ -4188,6 +4230,222 @@
         }
 
         // ==================== AI训练系统 ====================
+        
+        // ============ 0. 后端API支持 ============
+        var backendEnabled = false;
+        var backendUrl = 'http://localhost:3000';
+        
+        function checkBackendAvailable() {
+            return new Promise(function(resolve) {
+                try {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', backendUrl + '/api/health', true);
+                    xhr.timeout = 2000;
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            backendEnabled = true;
+                            console.log('[Backend] 后端服务可用');
+                            resolve(true);
+                        } else {
+                            backendEnabled = false;
+                            resolve(false);
+                        }
+                    };
+                    xhr.onerror = function() {
+                        backendEnabled = false;
+                        resolve(false);
+                    };
+                    xhr.ontimeout = function() {
+                        backendEnabled = false;
+                        resolve(false);
+                    };
+                    xhr.send();
+                } catch (e) {
+                    backendEnabled = false;
+                    resolve(false);
+                }
+            });
+        }
+        
+        function backendApi(path, options) {
+            return new Promise(function(resolve, reject) {
+                if (!backendEnabled) {
+                    reject(new Error('后端服务不可用'));
+                    return;
+                }
+                
+                var xhr = new XMLHttpRequest();
+                xhr.open(options.method || 'GET', backendUrl + path, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            resolve(JSON.parse(xhr.responseText));
+                        } catch (e) {
+                            resolve(xhr.responseText);
+                        }
+                    } else {
+                        reject(new Error('API请求失败: ' + xhr.status));
+                    }
+                };
+                
+                xhr.onerror = function() {
+                    reject(new Error('网络错误'));
+                };
+                
+                xhr.timeout = 10000;
+                xhr.ontimeout = function() {
+                    reject(new Error('请求超时'));
+                };
+                
+                if (options.body) {
+                    xhr.send(JSON.stringify(options.body));
+                } else {
+                    xhr.send();
+                }
+            });
+        }
+        
+        function syncDrawDataToBackend() {
+            if (!backendEnabled || !drawData || drawData.length === 0) return Promise.resolve();
+            
+            return backendApi('/api/draw-data', {
+                method: 'POST',
+                body: drawData
+            }).then(function(res) {
+                console.log('[Backend] 开奖数据已同步:', res.count, '条');
+                return res;
+            }).catch(function(err) {
+                console.warn('[Backend] 开奖数据同步失败:', err.message);
+            });
+        }
+        
+        function syncPatternsToBackend() {
+            if (!backendEnabled || !aiPatterns || aiPatterns.length === 0) return Promise.resolve();
+            
+            return backendApi('/api/patterns', {
+                method: 'POST',
+                body: aiPatterns
+            }).then(function(res) {
+                console.log('[Backend] 模式库已同步:', res.count, '条');
+                return res;
+            }).catch(function(err) {
+                console.warn('[Backend] 模式库同步失败:', err.message);
+            });
+        }
+        
+        function syncPositionStatsToBackend() {
+            if (!backendEnabled || !positionStats) return Promise.resolve();
+            
+            return backendApi('/api/position-stats', {
+                method: 'POST',
+                body: positionStats
+            }).then(function(res) {
+                console.log('[Backend] 位置统计已同步:', res.count, '条');
+                return res;
+            }).catch(function(err) {
+                console.warn('[Backend] 位置统计同步失败:', err.message);
+            });
+        }
+        
+        function syncAnalysisHistoryToBackend() {
+            if (!backendEnabled || !aiAnalysisHistory) return Promise.resolve();
+            
+            return backendApi('/api/analysis-history', {
+                method: 'POST',
+                body: aiAnalysisHistory
+            }).then(function(res) {
+                console.log('[Backend] 分析历史已同步:', res.count, '条');
+                return res;
+            }).catch(function(err) {
+                console.warn('[Backend] 分析历史同步失败:', err.message);
+            });
+        }
+        
+        function syncTrainingStatusToBackend() {
+            if (!backendEnabled) return Promise.resolve();
+            
+            return backendApi('/api/training-status', {
+                method: 'POST',
+                body: {
+                    completed: aiTrainingCompleted,
+                    lastPeriod: aiLastTrainedPeriod
+                }
+            }).then(function(res) {
+                console.log('[Backend] 训练状态已同步');
+                return res;
+            }).catch(function(err) {
+                console.warn('[Backend] 训练状态同步失败:', err.message);
+            });
+        }
+        
+        function loadDataFromBackend() {
+            if (!backendEnabled) return Promise.resolve(false);
+            
+            console.log('[Backend] 开始从后端加载数据...');
+            
+            return Promise.all([
+                backendApi('/api/draw-data').catch(function() { return []; }),
+                backendApi('/api/patterns').catch(function() { return []; }),
+                backendApi('/api/position-stats').catch(function() { return {}; }),
+                backendApi('/api/analysis-history').catch(function() { return []; }),
+                backendApi('/api/training-status').catch(function() { return { completed: false, lastPeriod: '' }; })
+            ]).then(function(results) {
+                var drawDataBackend = results[0];
+                var patternsBackend = results[1];
+                var positionStatsBackend = results[2];
+                var analysisHistoryBackend = results[3];
+                var trainingStatusBackend = results[4];
+                
+                if (drawDataBackend && drawDataBackend.length > 0) {
+                    console.log('[Backend] 加载开奖数据:', drawDataBackend.length, '条');
+                    var localHasData = drawData && drawData.length > 0;
+                    if (!localHasData || drawDataBackend.length > drawData.length) {
+                        drawData = drawDataBackend;
+                        saveData();
+                        console.log('[Backend] 开奖数据已更新');
+                    }
+                }
+                
+                if (patternsBackend && patternsBackend.length > 0) {
+                    console.log('[Backend] 加载模式库:', patternsBackend.length, '条');
+                    if (!aiPatterns || aiPatterns.length < patternsBackend.length) {
+                        aiPatterns = patternsBackend;
+                        console.log('[Backend] 模式库已更新');
+                    }
+                }
+                
+                if (positionStatsBackend && Object.keys(positionStatsBackend).length > 0) {
+                    console.log('[Backend] 加载位置统计');
+                    if (!positionStats || Object.keys(positionStats).length < Object.keys(positionStatsBackend).length) {
+                        positionStats = positionStatsBackend;
+                        savePositionStats();
+                        console.log('[Backend] 位置统计已更新');
+                    }
+                }
+                
+                if (analysisHistoryBackend && analysisHistoryBackend.length > 0) {
+                    console.log('[Backend] 加载分析历史:', analysisHistoryBackend.length, '条');
+                    if (!aiAnalysisHistory || aiAnalysisHistory.length < analysisHistoryBackend.length) {
+                        aiAnalysisHistory = analysisHistoryBackend;
+                        saveAIAnalysisHistory();
+                        console.log('[Backend] 分析历史已更新');
+                    }
+                }
+                
+                if (trainingStatusBackend && trainingStatusBackend.completed) {
+                    aiTrainingCompleted = trainingStatusBackend.completed;
+                    aiLastTrainedPeriod = trainingStatusBackend.lastPeriod || '';
+                    console.log('[Backend] 训练状态已加载: completed=', aiTrainingCompleted);
+                }
+                
+                return true;
+            }).catch(function(err) {
+                console.warn('[Backend] 从后端加载数据失败:', err.message);
+                return false;
+            });
+        }
 
         // ============ 1. IndexedDB数据湖 ============
         var aiDB = null;
@@ -5569,6 +5827,10 @@
             } catch (e) {
                 console.error('Failed to save position stats:', e);
             }
+            
+            if (backendEnabled) {
+                syncPositionStatsToBackend();
+            }
         }
         
         function getPositionStats(positionName) {
@@ -5677,6 +5939,10 @@
                 localStorage.setItem('lotteryAIAnalysisHistory', JSON.stringify(aiAnalysisHistory));
             } catch (e) {
                 console.error('Failed to save AI analysis history:', e);
+            }
+            
+            if (backendEnabled) {
+                syncAnalysisHistoryToBackend();
             }
         }
         
