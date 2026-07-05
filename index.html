@@ -245,7 +245,9 @@
         .ai-stat-value.medium { color:#d29922; }
         .ai-stat-value.low { color:#f85149; }
         .ai-stat-value.blue { color:#58a6ff; }
-        .ai-position-label { font-size:10px; color:#8957e5; font-weight:bold; margin-bottom:6px; padding-left:4px; border-left:3px solid #8957e5; }
+        .ai-position-label { font-size:11px; color:#a371f7; font-weight:bold; margin-bottom:8px; padding-left:6px; border-left:4px solid #a371f7; }
+        .ai-position-label.highest { font-size:13px; color:#f5d061; font-weight:bold; margin-bottom:10px; padding-left:8px; border-left:5px solid #f5d061; background:linear-gradient(90deg, rgba(245,208,97,0.15), transparent); padding:4px 8px 4px 8px; border-radius:4px; box-shadow:0 0 12px rgba(245,208,97,0.3); animation:pulseGold 2s infinite; }
+        @keyframes pulseGold { 0%,100%{box-shadow:0 0 12px rgba(245,208,97,0.3);} 50%{box-shadow:0 0 20px rgba(245,208,97,0.6);} }
         .ai-rec-history { display:flex; flex-wrap:wrap; gap:10px; font-size:10px; padding-top:8px; border-top:1px solid #30363d; }
         .ai-history-item { color:#8b949e; background:#161b22; padding:3px 8px; border-radius:3px; }
         .ai-stat-value.purple { color:#a371f7; }
@@ -434,7 +436,7 @@
                 
                 <div class="ai-stats" style="display:flex;gap:15px;margin-bottom:10px;font-size:10px;color:#8b949e;">
                     <span>📊 数据湖: <span id="aiDataLakeCount">0</span>期</span>
-                    <span>🧠 模式库: <span id="aiPatternCount">0</span>个</span>
+                    <span>🧠 模式库: <span id="aiPatternCount">0</span>个 (<span id="aiPositiveCount">0</span>正/<span id="aiNegativeCount">0</span>反)</span>
                     <span>🎯 命中率: <span id="aiHitRate">--</span>%</span>
                 </div>
                 
@@ -443,12 +445,12 @@
                     <div style="display:flex;gap:15px;flex-wrap:wrap;">
                         <div style="display:flex;align-items:center;gap:5px;">
                             <label style="font-size:10px;color:#8b949e;">第一轮:</label>
-                            <input type="number" id="aiThresholdRound1" min="0" max="100" value="60" style="width:50px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
+                            <input type="number" id="aiThresholdRound1" min="0" max="100" value="30" style="width:50px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
                             <span style="font-size:10px;color:#8b949e;">分</span>
                         </div>
                         <div style="display:flex;align-items:center;gap:5px;">
                             <label style="font-size:10px;color:#8b949e;">第二轮:</label>
-                            <input type="number" id="aiThresholdRound2" min="0" max="100" value="60" style="width:50px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
+                            <input type="number" id="aiThresholdRound2" min="0" max="100" value="30" style="width:50px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
                             <span style="font-size:10px;color:#8b949e;">分</span>
                         </div>
                         <div style="display:flex;align-items:center;gap:5px;">
@@ -466,6 +468,7 @@
                         <button class="btn btn-green" onclick="exportPatterns()" style="padding:5px 12px;font-size:11px;">📤 导出模式库</button>
                         <button class="btn btn-gray" onclick="document.getElementById('importPatternsInput').click()" style="padding:5px 12px;font-size:11px;">📥 导入模式库</button>
                         <button class="btn btn-red" onclick="clearPatterns()" style="padding:5px 12px;font-size:11px;">🗑️ 清空模式库</button>
+                        <button class="btn btn-gray" onclick="clearBrowserStorage()" style="padding:5px 12px;font-size:11px;margin-left:5px;">🧹 清空浏览器存储</button>
                         <input type="file" id="importPatternsInput" accept=".json" style="display:none;" onchange="importPatterns(this)">
                     </div>
                     <div style="font-size:9px;color:#8b949e;margin-top:5px;">💡 导出为JSON文件，方便跨设备迁移；导入时会合并现有数据</div>
@@ -479,20 +482,21 @@
                     <div style="display:flex;gap:15px;flex-wrap:wrap;align-items:center;">
                         <div style="display:flex;align-items:center;gap:5px;">
                             <label style="font-size:10px;color:#8b949e;">回溯期数:</label>
-                            <input type="number" id="backtestPeriods" min="5" max="50" value="10" style="width:45px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
+                            <input type="number" id="backtestPeriods" min="10" max="100" value="50" style="width:45px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
                             <span style="font-size:10px;color:#8b949e;">期</span>
                         </div>
                         <div style="display:flex;align-items:center;gap:5px;">
                             <label style="font-size:10px;color:#8b949e;">淘汰阈值:</label>
-                            <input type="number" id="backtestThreshold" min="0" max="100" value="30" style="width:45px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
+                            <input type="number" id="backtestThreshold" min="5" max="100" value="30" style="width:45px;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:3px;color:#c9d1d9;font-size:11px;text-align:center;">
                             <span style="font-size:10px;color:#8b949e;">%</span>
                         </div>
-                        <button class="btn btn-purple" onclick="runBacktestValidation()" style="padding:5px 12px;font-size:11px;">立即回溯</button>
+                        <button class="btn btn-purple" onclick="runBacktestValidation()" style="padding:5px 12px;font-size:11px;">🔍 执行回溯</button>
+                        <button class="btn btn-blue" onclick="optimizePatternLibrary()" style="padding:5px 12px;font-size:11px;">⚡ 优化模式库</button>
                         <label style="font-size:10px;color:#8b949e;display:flex;align-items:center;gap:3px;">
-                            <input type="checkbox" id="autoBacktest" style="vertical-align:middle;"> 自动回溯
+                            <input type="checkbox" id="autoBacktest" onchange="toggleAutoBacktest(this.checked)" style="vertical-align:middle;"> 自动维护
                         </label>
                     </div>
-                    <div style="font-size:9px;color:#8b949e;margin-top:5px;">💡 异步后台执行，不影响正常分析；命中率低于阈值的模式将被删除</div>
+                    <div style="font-size:9px;color:#8b949e;margin-top:5px;">💡 回溯验证模式有效性；优化移除低质量模式；自动维护每30分钟执行一次</div>
                 </div>
                 
                 <div id="aiResult" style="display:none;">
@@ -1849,6 +1853,10 @@
         window.onload = function() {
             console.log('Page loaded');
             
+            if (window.location.protocol === 'file:') {
+                alert('⚠️ 警告：请通过服务器访问本应用！\n\n正确方式：\n1. 运行 启动服务器.bat\n2. 在浏览器中打开 http://localhost:3000\n\n直接打开index.html无法使用API功能和数据保存。');
+            }
+            
             setTimeout(function() {
                 loadFromLocalStorage();
                 loadPositionStats();
@@ -1943,10 +1951,9 @@
         }
         
         function loadFromLocalStorage() {
-            try {
-                var saved = localStorage.getItem('lotteryDrawData');
-                if (saved) {
-                    drawData = JSON.parse(saved);
+            fetch('/api/draw-data').then(function(res) { return res.json(); }).then(function(data) {
+                if (data && data.length > 0) {
+                    drawData = data;
                     sortDrawData(drawData);
                     document.getElementById('drawCount').textContent = drawData.length + '期';
                     updateCurrentDrawDisplay();
@@ -1955,9 +1962,25 @@
                         document.getElementById('drawInput').value = formatDrawData(drawData);
                     }, 500);
                 }
-            } catch (e) {
-                console.error('Failed to load from localStorage:', e);
-            }
+            }).catch(function(e) {
+                console.error('Failed to load from backend:', e);
+                
+                try {
+                    var saved = localStorage.getItem('lotteryDrawData');
+                    if (saved) {
+                        drawData = JSON.parse(saved);
+                        sortDrawData(drawData);
+                        document.getElementById('drawCount').textContent = drawData.length + '期';
+                        updateCurrentDrawDisplay();
+                        
+                        setTimeout(function() {
+                            document.getElementById('drawInput').value = formatDrawData(drawData);
+                        }, 500);
+                    }
+                } catch (e2) {
+                    console.error('Failed to load from localStorage:', e2);
+                }
+            });
         }
         
         function exportData() {
@@ -2121,9 +2144,6 @@
         function saveToLocalStorage() {
             try {
                 localStorage.setItem('lotteryDrawData', JSON.stringify(drawData));
-                updateCurrentDrawDisplay(); // 更新当期开奖号码显示
-                
-                refreshChartsIfNeeded();
             } catch (e) {
                 console.error('Failed to save to localStorage:', e);
             }
@@ -2131,6 +2151,19 @@
         
         function saveDrawData() {
             saveToLocalStorage();
+            
+            fetch('/api/draw-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(drawData)
+            }).then(function(res) { return res.json(); }).then(function(result) {
+                console.log('[Backend] 开奖数据已保存:', result.count, '条');
+            }).catch(function(e) {
+                console.error('[Backend] 保存开奖数据失败:', e);
+            });
+            
+            updateCurrentDrawDisplay();
+            refreshChartsIfNeeded();
         }
 
         // ==================== K线编辑器相关 ====================
@@ -2140,6 +2173,15 @@
         var isDrawing = false;
         
         function loadTrendPatternsFromStorage() {
+            fetch('/api/trend-patterns').then(function(res) { return res.json(); }).then(function(data) {
+                if (data && data.length > 0) {
+                    trendPatterns = data;
+                    renderTrendList();
+                }
+            }).catch(function(e) {
+                console.error('[Backend] 加载趋势模式失败:', e);
+            });
+            
             var saved = localStorage.getItem('trendPatterns');
             if (saved) {
                 try {
@@ -2394,6 +2436,16 @@
 
         function saveTrendList() {
             localStorage.setItem('trendPatterns', JSON.stringify(trendPatterns));
+            
+            fetch('/api/trend-patterns', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(trendPatterns)
+            }).then(function(res) { return res.json(); }).then(function(result) {
+                console.log('[Backend] 趋势模式已保存:', result.count, '条');
+            }).catch(function(e) {
+                console.error('[Backend] 保存趋势模式失败:', e);
+            });
         }
         
         function loadTrendList() {
@@ -2594,15 +2646,18 @@
             var bestIdx = -1;
             var bestScore = -1;
             
-            for (var i = 0; i < groups.length; i++) {
-                var hitResults = getCachedHitResults(groups[i]);
+            var maxGroups = 5000;
+            var groupsToCheck = groups.length > maxGroups ? 
+                groups.slice(0, maxGroups) : groups;
+            
+            for (var i = 0; i < groupsToCheck.length; i++) {
+                var hitResults = getCachedHitResults(groupsToCheck[i]);
                 var score = calcPatternScoreOptimized(patternData, hitResults);
                 
                 if (score > bestScore) {
                     bestScore = score;
                     bestIdx = i;
                     
-                    // 提前终止：找到完美匹配
                     if (bestScore >= 100) {
                         break;
                     }
@@ -2616,15 +2671,18 @@
             var bestIdx = -1;
             var bestScore = -1;
             
-            for (var i = 0; i < groups.length; i++) {
-                var hitResults = getCachedHitResults(groups[i]);
+            var maxGroups = 5000;
+            var groupsToCheck = groups.length > maxGroups ? 
+                groups.slice(0, maxGroups) : groups;
+            
+            for (var i = 0; i < groupsToCheck.length; i++) {
+                var hitResults = getCachedHitResults(groupsToCheck[i]);
                 var score = calcExactMatchScoreOptimized(patternData, hitResults);
                 
                 if (score > bestScore) {
                     bestScore = score;
                     bestIdx = i;
                     
-                    // 提前终止：找到完美匹配
                     if (bestScore >= 100) {
                         break;
                     }
@@ -2771,17 +2829,30 @@
         
         // ==================== 分割设置弹窗 ====================
         function openSplitConfig() {
-            if (trendPatterns.length === 0) {
-                alert('请先在K线编辑器中创建并保存至少一个趋势图');
-                return;
-            }
-            
             if (drawData.length < 30) {
                 alert('开奖数据不足30期，无法进行智能分割');
                 return;
             }
             
-            // 加载上次保存的配置
+            if (trendPatterns.length === 0) {
+                fetch('/api/trend-patterns').then(function(res) { return res.json(); }).then(function(data) {
+                    if (data && data.length > 0) {
+                        trendPatterns = data;
+                        renderTrendList();
+                        openSplitConfigAfterLoad();
+                    } else {
+                        alert('请先在K线编辑器中创建并保存至少一个趋势图');
+                    }
+                }).catch(function() {
+                    alert('请先在K线编辑器中创建并保存至少一个趋势图');
+                });
+                return;
+            }
+            
+            openSplitConfigAfterLoad();
+        }
+        
+        function openSplitConfigAfterLoad() {
             var savedConfig = loadSplitConfig();
             if (savedConfig) {
                 if (savedConfig.splitMode) {
@@ -2879,7 +2950,7 @@
         var retryCount = 0; // 重试次数计数器
         var globalStartTime = 0; // 全局开始时间
         var stopSplit = false; // 停止分割标志位
-        var MAX_ATTEMPTS = 3000; // 第二次分割最大尝试次数
+        var MAX_ATTEMPTS = 1500; // 第二次分割最大尝试次数
         var currentSplitMode = 'auto'; // 当前分割模式
         var manualFirstResult = null; // 手动模式下第一次分割的结果
         
@@ -2887,6 +2958,7 @@
         var autoSplitEnabled = false; // 自动分割开关
         var autoSplitTemplateReady = false; // 模板是否已就绪（首次手动分割完成后置true）
         var autoSplitRunning = false; // 防止重复触发
+        var pendingAutoTraining = false; // 是否有待执行的自动训练
         
         function loadAutoSplitState() {
             try {
@@ -2944,6 +3016,35 @@
             console.log('[AutoSplit] 自动分割已' + (enabled ? '开启' : '关闭'));
         }
         
+        function scheduleAutoTrainingAfterSplit() {
+            pendingAutoTraining = true;
+            console.log('[AI] Auto training scheduled after split completes');
+            
+            if (!autoSplitRunning && !autoSplitEnabled) {
+                console.log('[AI] No auto split running/enabled, starting training immediately');
+                setTimeout(startAutoTraining, 2000);
+                pendingAutoTraining = false;
+            }
+        }
+        
+        function onSplitCompleted() {
+            autoSplitRunning = false;
+            console.log('[AutoSplit] Split completed');
+            
+            if (pendingAutoTraining && !isTraining) {
+                console.log('[AI] Split completed, starting full auto analysis...');
+                setTimeout(function() {
+                    if (drawData.length > 0) {
+                        var latestPeriod = drawData[drawData.length - 1];
+                        performAutoAnalysis(latestPeriod).catch(function(err) {
+                            console.error('[AI] Auto-analysis error:', err);
+                        });
+                    }
+                    pendingAutoTraining = false;
+                }, 3000);
+            }
+        }
+        
         // 使用模板自动执行分割
         function runAutoSplitWithTemplate() {
             if (autoSplitRunning) {
@@ -2978,11 +3079,10 @@
                 // 延迟执行，确保DOM已更新
                 setTimeout(function() {
                     startAutoSplit(true);
-                    autoSplitRunning = false;
                 }, 200);
             } catch (e) {
                 console.error('[AutoSplit] 自动分割失败:', e);
-                autoSplitRunning = false;
+                onSplitCompleted();
             }
         }
         
@@ -2997,16 +3097,12 @@
         }
         
         function startAutoSplit(isAutoTriggered) {
-            // 重置停止标志
             stopSplit = false;
             
-            // 获取分割模式
             currentSplitMode = document.getElementById('splitMode').value;
             
-            // 保存当前配置
             saveSplitConfig();
             
-            // 手动执行时，标记模板已就绪
             if (!isAutoTriggered) {
                 autoSplitTemplateReady = true;
                 saveAutoSplitState();
@@ -3017,27 +3113,34 @@
             var count = parseInt(document.getElementById('splitCount').value);
             var matchMode = document.getElementById('matchMode').value;
             var splitResults = [];
-            var currentNumbers = null; // 当前分割的号码集
+            var currentNumbers = null;
             
-            // 重置计数器
             retryCount = 0;
             globalStartTime = Date.now();
             
-            // 清空缓存
             clearHitCache();
             
-            // 保存当前配置
             autoSplitConfig = {
                 count: count,
                 matchMode: matchMode,
                 types: [],
                 trendIdxs: [],
-                thresholds: [] // 每行的相似度阈值
+                thresholds: []
             };
             
             console.log('智能分割开始 - 模式:', matchMode);
             
-            // 验证配置
+            if (trendPatterns.length === 0) {
+                var resultContainer = document.getElementById('autoResult');
+                resultContainer.innerHTML = 
+                    '<div style="color:#f78166;padding:15px;text-align:center;">' +
+                    '<div style="font-weight:bold;margin-bottom:10px;">⚠️ 没有趋势模式</div>' +
+                    '<div style="font-size:12px;color:#8b949e;margin-bottom:8px;">请先创建趋势模式，然后再执行分割</div>' +
+                    '</div>';
+                closeSplitModal();
+                return;
+            }
+            
             for (var i = 1; i <= count; i++) {
                 var trendIdx = parseInt(document.getElementById('splitTrend' + i).value);
                 autoSplitConfig.types.push(parseInt(document.getElementById('splitType' + i).value));
@@ -3045,7 +3148,13 @@
                 autoSplitConfig.thresholds.push(getRowSimilarityThreshold(i));
                 
                 if (isNaN(trendIdx) || trendIdx < 0) {
-                    alert('第' + i + '次分割必须选择一个趋势图');
+                    var resultContainer = document.getElementById('autoResult');
+                    resultContainer.innerHTML = 
+                        '<div style="color:#f78166;padding:15px;text-align:center;">' +
+                        '<div style="font-weight:bold;margin-bottom:10px;">⚠️ 配置错误</div>' +
+                        '<div style="font-size:12px;color:#8b949e;margin-bottom:8px;">第' + i + '次分割必须选择一个趋势图</div>' +
+                        '</div>';
+                    closeSplitModal();
                     return;
                 }
             }
@@ -3062,7 +3171,16 @@
             if (round > count) {
                 var elapsed = (Date.now() - globalStartTime) / 1000;
                 console.log('分割完成，耗时:', elapsed.toFixed(2), '秒');
+                
+                var resultContainer = document.getElementById('autoResult');
+                resultContainer.innerHTML = 
+                    '<div style="color:#238636;padding:15px;text-align:center;">' +
+                    '<div style="font-weight:bold;margin-bottom:10px;">🎉 分割完成！</div>' +
+                    '<div style="font-size:12px;color:#8b949e;margin-bottom:8px;">共完成 ' + (round - 1) + ' 次分割，耗时 ' + elapsed.toFixed(2) + ' 秒</div>' +
+                    '</div>';
+                
                 displayAutoResult(splitResults);
+                onSplitCompleted();
                 return;
             }
             
@@ -3075,7 +3193,6 @@
             
             // 使用异步递归避免阻塞主线程
             function searchOnce() {
-                // 检查是否需要停止
                 if (stopSplit) {
                     var resultContainer = document.getElementById('autoResult');
                     resultContainer.innerHTML = 
@@ -3091,14 +3208,11 @@
                 attempts++;
                 retryCount = attempts;
                 
-                // 检查第二次分割是否超过最大尝试次数
                 if (round >= 2 && attempts > MAX_ATTEMPTS) {
                     console.log('第' + round + '次分割超过', MAX_ATTEMPTS, '次尝试，重新开始第1次分割');
                     
-                    // 清空当前轮次及之后的结果
                     splitResults.splice(round - 1, splitResults.length - (round - 1));
                     
-                    // 更新状态显示
                     var resultContainer = document.getElementById('autoResult');
                     resultContainer.innerHTML = 
                         '<div style="color:#f0883e;padding:15px;text-align:center;">' +
@@ -3111,7 +3225,6 @@
                         '<button class="btn btn-gray" onclick="stopAutoSplit()">停止并修改配置</button>' +
                         '</div>';
                     
-                    // 清空缓存并重新从第1次开始
                     clearHitCache();
                     executeSplit(splitResults, null, 1);
                     return;
@@ -3122,20 +3235,20 @@
                     findExactMatchingGroup(grps, pattern.data, drawData, posType) :
                     findBestMatchingGroup(grps, pattern.data, drawData, posType);
                 
-                // 更新状态显示
-                var resultContainer = document.getElementById('autoResult');
-                resultContainer.innerHTML = 
-                    '<div style="color:#f0883e;padding:15px;text-align:center;">' +
-                    '<div style="font-weight:bold;margin-bottom:10px;">第' + round + '次分割中...</div>' +
-                    '<div style="font-size:12px;color:#8b949e;margin-bottom:8px;">正在查找符合模板的号码组...</div>' +
-                    '<div class="retry-status" style="justify-content:center;margin-bottom:15px;">' +
-                    '<div class="retry-dot"></div>' +
-                    '<span>已尝试 <span class="retry-count">' + attempts + '</span> 次</span>' +
-                    '</div>' +
-                    '<button class="btn btn-gray" onclick="stopAutoSplit()">停止并修改配置</button>' +
-                    '</div>';
+                if (attempts % 5 === 0) {
+                    var resultContainer = document.getElementById('autoResult');
+                    resultContainer.innerHTML = 
+                        '<div style="color:#f0883e;padding:15px;text-align:center;">' +
+                        '<div style="font-weight:bold;margin-bottom:10px;">第' + round + '次分割中...</div>' +
+                        '<div style="font-size:12px;color:#8b949e;margin-bottom:8px;">正在查找符合模板的号码组...</div>' +
+                        '<div class="retry-status" style="justify-content:center;margin-bottom:15px;">' +
+                        '<div class="retry-dot"></div>' +
+                        '<span>已尝试 <span class="retry-count">' + attempts + '</span> 次</span>' +
+                        '</div>' +
+                        '<button class="btn btn-gray" onclick="stopAutoSplit()">停止并修改配置</button>' +
+                        '</div>';
+                }
                 
-                // 找到匹配
                 if (best && best.score >= minThreshold) {
                     splitResults.push({
                         round: round,
@@ -3143,24 +3256,24 @@
                         trendName: pattern.name,
                         score: best.score,
                         group: grps[best.idx],
-                        allGroups: grps, // 保存所有分组
-                        bestIdx: best.idx, // 保存选中的索引
+                        allGroups: grps,
+                        bestIdx: best.idx,
                         attempts: attempts,
                         threshold: minThreshold
                     });
                     
-                    // 手动模式下，第一次分割完成后停止
                     if (currentSplitMode === 'manual' && round === 1) {
-                        manualFirstResult = splitResults[0]; // 保存第一次分割结果
+                        manualFirstResult = splitResults[0];
                         displayManualFirstResult(splitResults);
                         return;
                     }
                     
-                    executeSplit(splitResults, grps[best.idx], round + 1);
+                    setTimeout(function() {
+                        executeSplit(splitResults, grps[best.idx], round + 1);
+                    }, 50);
                     return;
                 }
                 
-                // 继续搜索（使用setTimeout让出主线程）
                 setTimeout(searchOnce, 0);
             }
             
@@ -4464,6 +4577,20 @@
             });
         }
         
+        function syncDataLakeToBackend() {
+            if (!backendEnabled || !aiDataLake || aiDataLake.length === 0) return Promise.resolve();
+            
+            return backendApi('/api/data-lake', {
+                method: 'POST',
+                body: aiDataLake
+            }).then(function(res) {
+                console.log('[Backend] 数据湖已同步:', res.count, '条');
+                return res;
+            }).catch(function(err) {
+                console.warn('[Backend] 数据湖同步失败:', err.message);
+            });
+        }
+        
         function syncPositionStatsToBackend() {
             if (!backendEnabled || !positionStats) return Promise.resolve();
             
@@ -4571,10 +4698,25 @@
                 
                 if (patternsBackend && patternsBackend.length > 0) {
                     console.log('[Backend] 加载模式库:', patternsBackend.length, '条');
-                    if (!aiPatterns || aiPatterns.length < patternsBackend.length) {
-                        aiPatterns = patternsBackend;
+                    
+                    var MAX_PATTERNS = 10000;
+                    var trimmedPatterns = patternsBackend.length > MAX_PATTERNS ? 
+                        patternsBackend.slice(-MAX_PATTERNS) : patternsBackend;
+                    
+                    if (trimmedPatterns.length !== patternsBackend.length) {
+                        console.log('[Backend] 模式库超过限制，已裁剪至', MAX_PATTERNS, '条');
+                    }
+                    
+                    if (!aiPatterns || aiPatterns.length < trimmedPatterns.length) {
+                        aiPatterns = trimmedPatterns;
                         console.log('[Backend] 模式库已更新');
                     }
+                }
+                
+                if (aiPatterns && aiPatterns.length > 0 && 
+                    patternsBackend && aiPatterns.length > patternsBackend.length) {
+                    console.log('[Backend] 前端模式库(' + aiPatterns.length + ')大于后端(' + patternsBackend.length + ')，开始同步');
+                    syncPatternsToBackend();
                 }
                 
                 if (positionStatsBackend && Object.keys(positionStatsBackend).length > 0) {
@@ -4679,6 +4821,14 @@
         }
         
         function loadDataLake() {
+            fetch('/api/data-lake').then(function(res) { return res.json(); }).then(function(data) {
+                if (data && data.length > 0) {
+                    aiDataLake = data;
+                }
+            }).catch(function(e) {
+                console.error('[Backend] 加载DataLake失败:', e);
+            });
+            
             try {
                 var saved = localStorage.getItem('lotteryDataLake');
                 if (saved) {
@@ -4696,59 +4846,72 @@
             } catch (e) {
                 console.error('[AI] Failed to save Data Lake:', e);
             }
+            
+            fetch('/api/data-lake', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(aiDataLake)
+            }).then(function(res) { return res.json(); }).then(function(result) {
+                console.log('[Backend] DataLake已保存:', result.count, '条');
+            }).catch(function(e) {
+                console.error('[Backend] 保存DataLake失败:', e);
+            });
         }
         
         function loadPatterns() {
             return new Promise(function(resolve) {
-                var localStoragePatterns = [];
-                try {
-                    var saved = localStorage.getItem('lotteryPatterns');
-                    if (saved) {
-                        localStoragePatterns = JSON.parse(saved);
-                        console.log('[AI] Loaded', localStoragePatterns.length, 'patterns from localStorage');
-                        
-                        aiPatterns = localStoragePatterns;
-                        console.log('[AI] Patterns assigned to aiPatterns:', aiPatterns.length);
+                fetch('/api/patterns').then(function(res) { return res.json(); }).then(function(backendPatterns) {
+                    if (backendPatterns && backendPatterns.length > 0) {
+                        aiPatterns = backendPatterns;
+                        console.log('[AI] Loaded', aiPatterns.length, 'patterns from backend');
                     }
                     
-                    var trainingStatus = localStorage.getItem('aiTrainingStatus');
-                    if (trainingStatus) {
-                        var status = JSON.parse(trainingStatus);
-                        aiTrainingCompleted = status.completed || false;
-                        aiLastTrainedPeriod = status.lastPeriod || '';
-                        console.log('[AI] Loaded training status: completed=', aiTrainingCompleted, ', lastPeriod=', aiLastTrainedPeriod);
-                    }
-                } catch (e) {
-                    console.error('[AI] Failed to load patterns from localStorage:', e);
-                }
-                
-                if (patternDB) {
-                    var transaction = patternDB.transaction(['patterns'], 'readonly');
-                    var store = transaction.objectStore('patterns');
-                    var request = store.getAll();
-                    
-                    request.onsuccess = function(e) {
-                        var dbPatterns = e.target.result || [];
-                        console.log('[AI] Loaded', dbPatterns.length, 'patterns from IndexedDB');
-                        
-                        if (localStoragePatterns.length > dbPatterns.length) {
-                            aiPatterns = localStoragePatterns;
-                            savePatterns();
-                        } else {
-                            aiPatterns = dbPatterns.length > 0 ? dbPatterns : localStoragePatterns;
+                    var localStoragePatterns = [];
+                    try {
+                        var saved = localStorage.getItem('lotteryPatterns');
+                        if (saved) {
+                            localStoragePatterns = JSON.parse(saved);
+                            console.log('[AI] Loaded', localStoragePatterns.length, 'patterns from localStorage');
+                            
+                            if (localStoragePatterns.length > aiPatterns.length) {
+                                aiPatterns = localStoragePatterns;
+                            }
                         }
-                        resolve();
-                    };
+                        
+                        var trainingStatus = localStorage.getItem('aiTrainingStatus');
+                        if (trainingStatus) {
+                            var status = JSON.parse(trainingStatus);
+                            aiTrainingCompleted = status.completed || false;
+                            aiLastTrainedPeriod = status.lastPeriod || '';
+                        }
+                    } catch (e) {
+                        console.error('[AI] Failed to load patterns from localStorage:', e);
+                    }
                     
-                    request.onerror = function() {
-                        console.error('[AI] Failed to load patterns from IndexedDB');
-                        aiPatterns = localStoragePatterns;
-                        resolve();
-                    };
-                } else {
-                    aiPatterns = localStoragePatterns;
                     resolve();
-                }
+                }).catch(function(e) {
+                    console.error('[Backend] 加载模式失败:', e);
+                    
+                    var localStoragePatterns = [];
+                    try {
+                        var saved = localStorage.getItem('lotteryPatterns');
+                        if (saved) {
+                            localStoragePatterns = JSON.parse(saved);
+                        }
+                        aiPatterns = localStoragePatterns;
+                        
+                        var trainingStatus = localStorage.getItem('aiTrainingStatus');
+                        if (trainingStatus) {
+                            var status = JSON.parse(trainingStatus);
+                            aiTrainingCompleted = status.completed || false;
+                            aiLastTrainedPeriod = status.lastPeriod || '';
+                        }
+                    } catch (e2) {
+                        console.error('[AI] Failed to load patterns:', e2);
+                    }
+                    
+                    resolve();
+                });
             });
         }
         
@@ -4766,6 +4929,16 @@
                 } catch (e) {
                     console.error('[AI] Failed to save Patterns to localStorage:', e);
                 }
+                
+                fetch('/api/patterns', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(aiPatterns)
+                }).then(function(res) { return res.json(); }).then(function(result) {
+                    console.log('[Backend] 模式库已保存:', result.count, '条');
+                }).catch(function(e) {
+                    console.error('[Backend] 保存模式库失败:', e);
+                });
                 
                 if (patternDB) {
                     var transaction = patternDB.transaction(['patterns'], 'readwrite');
@@ -4897,8 +5070,9 @@
             
             updateAIStatsUI();
             
-            if (drawData.length >= 20) {
-                setTimeout(startAutoTraining, 1000);
+            if (newCount > 0 && drawData.length >= 50 && !aiTrainingCompleted && !isTraining) {
+                console.log('[AI] New data detected, queuing auto training...');
+                scheduleAutoTrainingAfterSplit();
             }
         }
         
@@ -4986,6 +5160,123 @@
             }
             
             return result;
+        }
+        
+        function calculateATR(data, period) {
+            if (data.length < period + 1) return 0;
+            
+            var trValues = [];
+            for (var i = 1; i < data.length; i++) {
+                var tr = Math.max(
+                    Math.abs(data[i] - data[i - 1]),
+                    Math.abs(data[i] - data[i - 1]),
+                    Math.abs(data[i - 1] - data[i])
+                );
+                trValues.push(tr);
+            }
+            
+            var sum = trValues.slice(-period).reduce(function(a, b) { return a + b; }, 0);
+            return sum / period;
+        }
+        
+        function calculateSlope(data, period) {
+            if (data.length < period) return 0;
+            
+            var recent = data.slice(-period);
+            var xSum = 0, ySum = 0, xySum = 0, x2Sum = 0;
+            
+            for (var i = 0; i < recent.length; i++) {
+                xSum += i;
+                ySum += recent[i];
+                xySum += i * recent[i];
+                x2Sum += i * i;
+            }
+            
+            var n = recent.length;
+            var denominator = n * x2Sum - xSum * xSum;
+            if (denominator === 0) return 0;
+            
+            return (n * xySum - xSum * ySum) / denominator;
+        }
+        
+        function calculateBreakoutCount(data, period) {
+            if (data.length < period) return 0;
+            
+            var count = 0;
+            var windowSize = Math.min(period, data.length);
+            
+            for (var i = windowSize; i < data.length; i++) {
+                var window = data.slice(i - windowSize, i);
+                var max = Math.max.apply(Math, window);
+                var min = Math.min.apply(Math, window);
+                
+                if (data[i] > max || data[i] < min) {
+                    count++;
+                }
+            }
+            
+            return count;
+        }
+        
+        function calculateOscillationCount(data, threshold) {
+            if (data.length < 3) return 0;
+            
+            var count = 0;
+            threshold = threshold || 5;
+            
+            for (var i = 2; i < data.length; i++) {
+                var prevChange = data[i - 1] - data[i - 2];
+                var currChange = data[i] - data[i - 1];
+                
+                if (prevChange > threshold && currChange < -threshold) {
+                    count++;
+                } else if (prevChange < -threshold && currChange > threshold) {
+                    count++;
+                }
+            }
+            
+            return count;
+        }
+        
+        function calculateConsecutiveCounts(data) {
+            if (data.length < 2) return { maxRed: 0, maxGreen: 0, avgRed: 0, avgGreen: 0 };
+            
+            var maxRed = 0, maxGreen = 0;
+            var currRed = 0, currGreen = 0;
+            var redCounts = [], greenCounts = [];
+            
+            for (var i = 1; i < data.length; i++) {
+                var change = data[i] - data[i - 1];
+                
+                if (change > 0) {
+                    currRed++;
+                    currGreen = 0;
+                    maxRed = Math.max(maxRed, currRed);
+                } else if (change < 0) {
+                    currGreen++;
+                    currRed = 0;
+                    maxGreen = Math.max(maxGreen, currGreen);
+                } else {
+                    if (currRed > 0) {
+                        redCounts.push(currRed);
+                        currRed = 0;
+                    }
+                    if (currGreen > 0) {
+                        greenCounts.push(currGreen);
+                        currGreen = 0;
+                    }
+                }
+            }
+            
+            if (currRed > 0) redCounts.push(currRed);
+            if (currGreen > 0) greenCounts.push(currGreen);
+            
+            var avgRed = redCounts.length > 0 ? 
+                redCounts.reduce(function(a, b) { return a + b; }, 0) / redCounts.length : 0;
+            var avgGreen = greenCounts.length > 0 ? 
+                greenCounts.reduce(function(a, b) { return a + b; }, 0) / greenCounts.length : 0;
+            
+            return { maxRed: maxRed, maxGreen: maxGreen, avgRed: avgRed, avgGreen: avgGreen };
         }
         
         function calculateTechnicalForPeriod(history, currentValue) {
@@ -5094,8 +5385,126 @@
                 pattern.id = Date.now() + Math.random();
                 pattern.timestamp = Date.now();
                 aiPatterns.push(pattern);
+                
+                var MAX_PATTERNS = 10000;
+                if (aiPatterns.length > MAX_PATTERNS) {
+                    var removed = aiPatterns.splice(0, aiPatterns.length - MAX_PATTERNS);
+                    console.log('[AI] 模式库超过限制，已清理', removed.length, '条旧模式');
+                }
+                
                 savePatterns().then(resolve);
             });
+        }
+        
+        function optimizePatternLibrary() {
+            console.log('[AI] Starting pattern library optimization...');
+            
+            var totalBefore = aiPatterns.length;
+            
+            aiPatterns = aiPatterns.filter(function(p) {
+                if (!p || p.patternType !== 'positive') return false;
+                
+                var hitCount = p.hitCount || 0;
+                var totalMatch = p.totalMatch || 1;
+                var missStreak = p.missStreak || 0;
+                
+                var hitRate = totalMatch > 0 ? hitCount / totalMatch : 0;
+                
+                if (missStreak >= 8) return false;
+                
+                if (totalMatch >= 20 && hitRate < 0.2) return false;
+                
+                if (totalMatch >= 10 && hitRate < 0.1) return false;
+                
+                return true;
+            });
+            
+            var removed = totalBefore - aiPatterns.length;
+            if (removed > 0) {
+                console.log('[AI] Pattern library optimized: removed', removed, 'poor patterns');
+                savePatterns();
+                updateAIStatsUI();
+            } else {
+                console.log('[AI] Pattern library already optimized, no patterns removed');
+            }
+        }
+        
+        function performPatternRetrospective() {
+            console.log('[AI] Starting pattern retrospective analysis...');
+            
+            if (aiPatterns.length === 0 || drawData.length < 50) {
+                console.log('[AI] Not enough data for retrospective');
+                return;
+            }
+            
+            var recentPeriods = drawData.slice(-50);
+            var totalTested = 0;
+            var totalHit = 0;
+            
+            for (var i = 0; i < recentPeriods.length - 1; i++) {
+                var testPeriod = recentPeriods[i];
+                var nextPeriod = recentPeriods[i + 1];
+                var actual = String(nextPeriod.back3 || nextPeriod.num).padStart(3, '0');
+                
+                var matched = false;
+                for (var j = 0; j < aiPatterns.length; j++) {
+                    var pattern = aiPatterns[j];
+                    if (!pattern || !pattern.features) continue;
+                    
+                    var allNumbers = [];
+                    for (var n = 0; n < 1000; n++) {
+                        allNumbers.push(n.toString().padStart(3, '0'));
+                    }
+                    
+                    var group = allNumbers.slice(0, 655);
+                    var groupFeatures = extractGroupFeatures(group);
+                    if (!groupFeatures) continue;
+                    
+                    var sim = calculateWeightedDistance(groupFeatures, pattern.features);
+                    if (sim > 0.7) {
+                        matched = true;
+                        break;
+                    }
+                }
+                
+                if (matched) {
+                    totalTested++;
+                    if (group && group.indexOf(actual) !== -1) {
+                        totalHit++;
+                    }
+                }
+            }
+            
+            var retrospectiveHitRate = totalTested > 0 ? (totalHit / totalTested * 100).toFixed(1) : 0;
+            console.log('[AI] Retrospective analysis complete: tested', totalTested, 'periods, hit rate:', retrospectiveHitRate + '%');
+            
+            if (totalTested >= 20 && parseFloat(retrospectiveHitRate) < 30) {
+                console.log('[AI] Low retrospective hit rate detected, triggering optimization...');
+                optimizePatternLibrary();
+            }
+        }
+        
+        var autoBacktestInterval = null;
+        
+        function toggleAutoBacktest(enabled) {
+            if (enabled) {
+                console.log('[AI] Auto backtest enabled, scheduling every 30 minutes');
+                autoBacktestInterval = setInterval(function() {
+                    if (!isTraining && !autoSplitRunning) {
+                        runBacktestValidation();
+                    }
+                }, 30 * 60 * 1000);
+            } else {
+                console.log('[AI] Auto backtest disabled');
+                if (autoBacktestInterval) {
+                    clearInterval(autoBacktestInterval);
+                    autoBacktestInterval = null;
+                }
+            }
+        }
+        
+        function schedulePatternMaintenance() {
+            console.log('[AI] Scheduling pattern maintenance every 30 minutes...');
         }
         
         function exportPatterns() {
@@ -5140,7 +5549,17 @@
                     }
                     
                     var importedCount = 0;
-                    newPatterns.forEach(function(pattern) {
+                    var MAX_PATTERNS = 10000;
+                    var availableSlots = MAX_PATTERNS - aiPatterns.length;
+                    
+                    if (availableSlots <= 0) {
+                        alert('模式库已满，请先清空部分旧模式');
+                        return;
+                    }
+                    
+                    var patternsToImport = newPatterns.slice(0, availableSlots);
+                    
+                    patternsToImport.forEach(function(pattern) {
                         pattern.id = Date.now() + Math.random();
                         pattern.timestamp = Date.now();
                         aiPatterns.push(pattern);
@@ -5176,6 +5595,49 @@
             
             alert('模式库已清空');
             console.log('[AI] Pattern library cleared');
+        }
+        
+        function clearBrowserStorage() {
+            if (!confirm('确定要清空浏览器存储吗？\n\n这将清空以下数据：\n- localStorage（本地存储，但保留模式库）\n- IndexedDB（除模式库外的数据库）\n\n数据将从服务器重新加载。此操作不可恢复！')) {
+                return;
+            }
+            
+            var savedPatterns = JSON.stringify(aiPatterns);
+            
+            try {
+                var keysToKeep = ['lotteryPatterns', 'ai_optimized_weights'];
+                for (var i = localStorage.length - 1; i >= 0; i--) {
+                    var key = localStorage.key(i);
+                    if (keysToKeep.indexOf(key) === -1) {
+                        localStorage.removeItem(key);
+                    }
+                }
+                console.log('[AI] localStorage cleared (patterns preserved)');
+            } catch (e) {
+                console.error('[AI] Failed to clear localStorage:', e);
+            }
+            
+            try {
+                indexedDB.databases().then(function(databases) {
+                    databases.forEach(function(db) {
+                        if (db.name !== 'lotteryPatternsDB') {
+                            indexedDB.deleteDatabase(db.name);
+                            console.log('[AI] IndexedDB deleted:', db.name);
+                        }
+                    });
+                });
+            } catch (e) {
+                console.error('[AI] Failed to clear IndexedDB:', e);
+            }
+            
+            aiDataLake = [];
+            aiTrainingCompleted = false;
+            aiLastTrainedPeriod = '';
+            
+            updateAIStatsUI();
+            
+            alert('浏览器存储已清空！\n\n请刷新页面重新加载数据。');
+            console.log('[AI] Browser storage cleared completely');
         }
         
         var backtestRunning = false;
@@ -5313,6 +5775,230 @@
                 localStorage.setItem('lastBacktestTime', now.toString());
                 runBacktestValidation();
             }
+        }
+        
+        function calculateFeatureImportance(periods) {
+            if (periods.length < 100) return null;
+            
+            var featureNames = [
+                'back3_diff', 'mid3_diff', 'front3_diff',
+                'sum_mean', 'sum_std', 'hot_digit_0', 'hot_digit_1', 'hot_digit_2', 'hot_digit_3', 'hot_digit_4',
+                'hot_digit_5', 'hot_digit_6', 'hot_digit_7', 'hot_digit_8', 'hot_digit_9',
+                'repeat_rate', 'leakage_sum', 'hot_cold_ratio', 'odd_even_balance', 'sum_zone',
+                'missing_0', 'missing_1', 'missing_2', 'missing_3', 'missing_4',
+                'missing_5', 'missing_6', 'missing_7', 'missing_8', 'missing_9',
+                'ema5', 'ema10', 'volatility', 'momentum', 'trend_strength',
+                'span_change', 'span_acceleration', 'span_mean', 'span_std', 'span_trend',
+                'back3_repeat', 'mid3_repeat', 'front3_repeat', 'back3_strength', 'mid3_strength',
+                'front3_strength', 'hit_rate', 'streak_rate', 'trend_score', 'recent_performance',
+                'pattern_match', 'ensemble_score'
+            ];
+            
+            var correlations = [];
+            
+            for (var fIdx = 0; fIdx < Math.min(featureNames.length, 52); fIdx++) {
+                var featureValues = [];
+                var targetValues = [];
+                
+                for (var i = 50; i < periods.length - 1; i++) {
+                    var historyData = periods.slice(i - 50, i);
+                    var features = extractCurrentFeaturesForValidation(historyData);
+                    
+                    if (!features || features.length <= fIdx) continue;
+                    
+                    var featureVal = features[fIdx];
+                    var target = parseInt(periods[i].back3 || '0');
+                    
+                    if (!isNaN(featureVal) && !isNaN(target)) {
+                        featureValues.push(featureVal);
+                        targetValues.push(target);
+                    }
+                }
+                
+                if (featureValues.length < 50) {
+                    correlations.push({ feature: featureNames[fIdx], importance: 0, samples: 0 });
+                    continue;
+                }
+                
+                var corr = calculateCorrelation(featureValues, targetValues);
+                var importance = Math.abs(corr);
+                
+                correlations.push({
+                    feature: featureNames[fIdx],
+                    importance: importance,
+                    correlation: corr,
+                    samples: featureValues.length
+                });
+            }
+            
+            correlations.sort(function(a, b) {
+                return b.importance - a.importance;
+            });
+            
+            return correlations;
+        }
+        
+        function calculateCorrelation(x, y) {
+            if (x.length !== y.length || x.length < 2) return 0;
+            
+            var n = x.length;
+            var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+            
+            for (var i = 0; i < n; i++) {
+                sumX += x[i];
+                sumY += y[i];
+                sumXY += x[i] * y[i];
+                sumX2 += x[i] * x[i];
+                sumY2 += y[i] * y[i];
+            }
+            
+            var numerator = n * sumXY - sumX * sumY;
+            var denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+            
+            if (denominator === 0) return 0;
+            
+            return numerator / denominator;
+        }
+        
+        function selectImportantFeatures(importanceList, threshold) {
+            if (!importanceList || importanceList.length === 0) return [];
+            
+            var selected = [];
+            for (var i = 0; i < importanceList.length; i++) {
+                if (importanceList[i].importance >= threshold) {
+                    selected.push(importanceList[i].feature);
+                }
+            }
+            
+            return selected;
+        }
+        
+        function optimizeFeatureWeights(correlations) {
+            var weights = {};
+            var totalImportance = 0;
+            
+            for (var i = 0; i < correlations.length; i++) {
+                totalImportance += correlations[i].importance;
+            }
+            
+            if (totalImportance === 0) {
+                return {
+                    hitRate: 0.15,
+                    streakRate: 0.08,
+                    trendScore: 0.2,
+                    recentPerformance: 0.1,
+                    patternMatch: 0.2,
+                    missingScore: 0.1,
+                    sumZoneScore: 0.07,
+                    diversityScore: 0.1
+                };
+            }
+            
+            var featureGroups = {
+                trend: ['trend_score', 'momentum', 'trend_strength'],
+                pattern: ['pattern_match', 'pattern_match_score', 'ensemble_score'],
+                statistics: ['hit_rate', 'streak_rate', 'recent_performance'],
+                missing: ['missing_score', 'missing_0', 'missing_1', 'missing_2', 'missing_3', 'missing_4',
+                          'missing_5', 'missing_6', 'missing_7', 'missing_8', 'missing_9'],
+                sum: ['sum_mean', 'sum_std', 'sum_zone', 'sumZoneScore'],
+                diversity: ['diversityScore', 'hot_cold_ratio', 'odd_even_balance']
+            };
+            
+            for (var group in featureGroups) {
+                var groupImportance = 0;
+                for (var fIdx = 0; fIdx < featureGroups[group].length; fIdx++) {
+                    var featureName = featureGroups[group][fIdx];
+                    var corr = correlations.find(function(c) { return c.feature === featureName; });
+                    if (corr) {
+                        groupImportance += corr.importance;
+                    }
+                }
+                weights[group] = groupImportance / totalImportance;
+            }
+            
+            var finalWeights = {
+                hitRate: weights.statistics ? weights.statistics * 0.3 : 0.15,
+                streakRate: weights.statistics ? weights.statistics * 0.2 : 0.08,
+                trendScore: weights.trend ? weights.trend * 0.4 : 0.2,
+                recentPerformance: weights.statistics ? weights.statistics * 0.25 : 0.1,
+                patternMatch: weights.pattern ? weights.pattern * 0.5 : 0.2,
+                missingScore: weights.missing ? weights.missing * 0.4 : 0.1,
+                sumZoneScore: weights.sum ? weights.sum * 0.3 : 0.07,
+                positionRepeatScore: weights.statistics ? weights.statistics * 0.1 : 0.05,
+                diversityScore: weights.diversity ? weights.diversity * 0.35 : 0.1,
+                ensembleBonus: 0.05
+            };
+            
+            var totalWeight = Object.values(finalWeights).reduce(function(a, b) { return a + b; }, 0);
+            if (totalWeight > 0) {
+                for (var key in finalWeights) {
+                    finalWeights[key] = finalWeights[key] / totalWeight;
+                }
+            }
+            
+            return finalWeights;
+        }
+        
+        function getOptimizedWeights() {
+            var defaultWeights = {
+                hitRate: 0.12,
+                streakRate: 0.08,
+                trendScore: 0.2,
+                recentPerformance: 0.1,
+                patternMatch: 0.2,
+                missingScore: 0.1,
+                sumZoneScore: 0.06,
+                positionRepeatScore: 0.05,
+                diversityScore: 0.08,
+                ensembleBonus: 0.01,
+                baseScore: 20
+            };
+            
+            try {
+                var stored = localStorage.getItem('ai_optimized_weights');
+                if (stored) {
+                    var loaded = JSON.parse(stored);
+                    for (var key in defaultWeights) {
+                        if (loaded[key] === undefined || isNaN(loaded[key])) {
+                            loaded[key] = defaultWeights[key];
+                        }
+                    }
+                    var total = 0;
+                    for (var key in loaded) {
+                        if (key !== 'baseScore') {
+                            total += loaded[key];
+                        }
+                    }
+                    if (total > 0 && Math.abs(total - 1) > 0.01) {
+                        for (var key in loaded) {
+                            if (key !== 'baseScore') {
+                                loaded[key] = loaded[key] / total;
+                            }
+                        }
+                    }
+                    return loaded;
+                }
+            } catch (e) {
+                console.error('[AI] Failed to load optimized weights:', e);
+            }
+            
+            return defaultWeights;
+        }
+        
+        function updateOptimizedWeights(periods) {
+            var correlations = calculateFeatureImportance(periods);
+            if (!correlations || correlations.length === 0) return;
+            
+            var newWeights = optimizeFeatureWeights(correlations);
+            
+            try {
+                localStorage.setItem('ai_optimized_weights', JSON.stringify(newWeights));
+                console.log('[AI] Updated optimized weights:', newWeights);
+            } catch (e) {
+                console.error('[AI] Failed to save optimized weights:', e);
+            }
+            
+            return newWeights;
         }
         
         function getAllPatternsFromDB() {
@@ -5531,33 +6217,33 @@
                 var patternMatches = [];
                 var count = Math.min(simulationCount, periods.length - 50);
                 
-                console.log('[AI] Starting simulation with', count, 'iterations, 655 bets per iteration');
+                var reinforcementWeights = loadReinforcementWeights();
                 
-                var batchSize = 50;
+                console.log('[AI] Starting simulation with', count, 'iterations, reinforcement enabled');
+                
+                var batchSize = 100;
                 var current = 0;
                 
                 function processBatch() {
                     var end = Math.min(current + batchSize, count);
                     
                     for (var i = current; i < end; i++) {
-                        var randomIndex = Math.floor(Math.random() * (periods.length - 50));
+                        var randomIndex = Math.floor(Math.random() * (periods.length - 1));
                         var testPeriod = periods[randomIndex];
-                        var historyData = periods.slice(Math.max(0, randomIndex - 50), randomIndex);
                         
                         var bets = generateRandomBets(655);
-                        var actual = testPeriod.back3;
+                        var actual = String(testPeriod.back3 || testPeriod.num).padStart(3, '0');
                         totalBets += bets.length;
                         
-                        for (var j = 0; j < bets.length; j++) {
-                            var bet = bets[j];
-                            var hit = bet === actual;
-                            
-                            if (hit) {
-                                totalHits++;
-                                var pattern = extractPattern(historyData, bet, hit);
-                                if (pattern) {
-                                    patternMatches.push(pattern);
-                                }
+                        var hit = bets.indexOf(actual) !== -1;
+                        
+                        if (hit) {
+                            totalHits++;
+                            var pattern = extractBetPattern(bets, actual);
+                            if (pattern) {
+                                pattern.priority = calculatePatternPriority(pattern, reinforcementWeights);
+                                pattern.patternType = 'positive';
+                                patternMatches.push(pattern);
                             }
                         }
                     }
@@ -5568,16 +6254,27 @@
                     callback({ type: 'progress', progress: progress, total: current, currentHits: totalHits });
                     
                     if (current < count) {
-                        setTimeout(processBatch, 10);
+                        setTimeout(processBatch, 50);
                     } else {
                         var hitRate = totalBets > 0 ? (totalHits / totalBets) * 100 : 0;
                         console.log('[AI] Simulation complete:', hitRate.toFixed(2) + '%', 'Hits:', totalHits, 'Bets:', totalBets);
+                        
+                        var cvResult = performCrossValidation(periods, patternMatches);
+                        console.log('[AI] Cross-validation result:', cvResult);
+                        
+                        saveReinforcementWeights(reinforcementWeights);
+                        
+                        patternMatches.sort(function(a, b) {
+                            return (b.priority || 0) - (a.priority || 0);
+                        });
+                        
                         callback({ 
                             type: 'complete', 
                             totalSimulations: count, 
                             totalHits: totalHits, 
                             hitRate: hitRate, 
-                            patterns: patternMatches.slice(0, 200) 
+                            patterns: patternMatches.slice(0, 300),
+                            cvResult: cvResult
                         });
                     }
                 }
@@ -5587,6 +6284,482 @@
                 console.error('[AI] Error getting periods:', err);
                 callback({ type: 'error', error: err.message });
             });
+        }
+        
+        function generateSmartBets(count, historyData, weights) {
+            var bets = [];
+            var used = {};
+            
+            var hotDigits = identifyHotDigits(historyData, weights);
+            var coldDigits = identifyColdDigits(historyData, weights);
+            
+            var betPool = [];
+            for (var i = 0; i < 1000; i++) {
+                var numStr = String(i).padStart(3, '0');
+                var score = evaluateBet(numStr, historyData, weights, hotDigits, coldDigits);
+                betPool.push({ num: numStr, score: score });
+            }
+            
+            betPool.sort(function(a, b) {
+                return b.score - a.score;
+            });
+            
+            var selected = betPool.slice(0, count * 2);
+            
+            for (var i = 0; i < selected.length && bets.length < count; i++) {
+                var idx = Math.floor(Math.random() * selected.length);
+                var bet = selected[idx];
+                if (!used[bet.num]) {
+                    used[bet.num] = true;
+                    bets.push(bet.num);
+                }
+                selected.splice(idx, 1);
+            }
+            
+            while (bets.length < count) {
+                var num = Math.floor(Math.random() * 1000);
+                var str = num.toString().padStart(3, '0');
+                if (!used[str]) {
+                    used[str] = true;
+                    bets.push(str);
+                }
+            }
+            
+            return bets;
+        }
+        
+        function generateRandomBets(count) {
+            var allNums = [];
+            for (var i = 0; i < 1000; i++) {
+                allNums.push(i.toString().padStart(3, '0'));
+            }
+            
+            for (var i = allNums.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = allNums[i];
+                allNums[i] = allNums[j];
+                allNums[j] = temp;
+            }
+            
+            return allNums.slice(0, count);
+        }
+        
+        function identifyHotDigits(historyData, weights) {
+            var freq = new Array(10).fill(0);
+            var recent = historyData.slice(-10);
+            
+            for (var i = 0; i < recent.length; i++) {
+                var numStr = (recent[i].number || recent[i].num || '').toString();
+                for (var j = 0; j < numStr.length; j++) {
+                    var digit = parseInt(numStr[j]);
+                    if (!isNaN(digit)) {
+                        freq[digit]++;
+                    }
+                }
+            }
+            
+            var hot = [];
+            for (var d = 0; d < 10; d++) {
+                if (freq[d] >= 3) {
+                    hot.push(d);
+                }
+            }
+            
+            return hot;
+        }
+        
+        function identifyColdDigits(historyData, weights) {
+            var freq = new Array(10).fill(0);
+            var recent = historyData.slice(-20);
+            
+            for (var i = 0; i < recent.length; i++) {
+                var numStr = (recent[i].number || recent[i].num || '').toString();
+                for (var j = 0; j < numStr.length; j++) {
+                    var digit = parseInt(numStr[j]);
+                    if (!isNaN(digit)) {
+                        freq[digit]++;
+                    }
+                }
+            }
+            
+            var cold = [];
+            for (var d = 0; d < 10; d++) {
+                if (freq[d] <= 2) {
+                    cold.push(d);
+                }
+            }
+            
+            return cold;
+        }
+        
+        function evaluateBet(numStr, historyData, weights, hotDigits, coldDigits) {
+            var score = 0;
+            var digits = numStr.split('').map(Number);
+            
+            for (var i = 0; i < digits.length; i++) {
+                var d = digits[i];
+                if (hotDigits.indexOf(d) !== -1) {
+                    score += weights.hotBonus || 5;
+                }
+                if (coldDigits.indexOf(d) !== -1) {
+                    score += weights.coldBonus || 3;
+                }
+            }
+            
+            var sum = digits.reduce(function(a, b) { return a + b; }, 0);
+            if (sum >= 12 && sum <= 21) {
+                score += weights.sumBonus || 5;
+            }
+            
+            var oddCount = digits.filter(function(d) { return d % 2 === 1; }).length;
+            if (oddCount >= 1 && oddCount <= 2) {
+                score += weights.balanceBonus || 3;
+            }
+            
+            return score;
+        }
+        
+        function calculatePatternPriority(pattern, weights) {
+            var priority = 1;
+            
+            if (pattern.hit) {
+                priority *= (weights.hitMultiplier || 1.5);
+            }
+            
+            if (pattern.features && pattern.features.length > 0) {
+                var avgFeature = pattern.features.reduce(function(a, b) { return a + Math.abs(b); }, 0) / pattern.features.length;
+                if (avgFeature < 50) {
+                    priority *= (weights.stableMultiplier || 1.2);
+                }
+            }
+            
+            var now = Date.now();
+            if (pattern.timestamp && (now - pattern.timestamp) < 3600000) {
+                priority *= (weights.recentMultiplier || 1.1);
+            }
+            
+            return priority;
+        }
+        
+        function updateReinforcementWeights(weights, historyData, bet, hit) {
+            var learningRate = weights.learningRate || 0.01;
+            
+            if (hit) {
+                weights.hitMultiplier = Math.min(2.0, (weights.hitMultiplier || 1.5) + learningRate);
+                weights.recentMultiplier = Math.min(1.5, (weights.recentMultiplier || 1.1) + learningRate * 0.5);
+            } else {
+                weights.hitMultiplier = Math.max(1.0, (weights.hitMultiplier || 1.5) - learningRate * 0.5);
+            }
+        }
+        
+        function loadReinforcementWeights() {
+            try {
+                var stored = localStorage.getItem('ai_reinforcement_weights');
+                if (stored) {
+                    return JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('[AI] Failed to load reinforcement weights:', e);
+            }
+            
+            return {
+                hitMultiplier: 1.5,
+                stableMultiplier: 1.2,
+                recentMultiplier: 1.1,
+                hotBonus: 5,
+                coldBonus: 3,
+                sumBonus: 5,
+                balanceBonus: 3,
+                learningRate: 0.01
+            };
+        }
+        
+        function saveReinforcementWeights(weights) {
+            try {
+                localStorage.setItem('ai_reinforcement_weights', JSON.stringify(weights));
+            } catch (e) {
+                console.error('[AI] Failed to save reinforcement weights:', e);
+            }
+        }
+        
+        function performCrossValidation(periods, patterns) {
+            if (periods.length < 100 || patterns.length === 0) {
+                return { folds: 0, avgHitRate: 0, variance: 0 };
+            }
+            
+            var k = 5;
+            var foldSize = Math.floor(periods.length / k);
+            var hitRates = [];
+            
+            for (var fold = 0; fold < k; fold++) {
+                var testStart = fold * foldSize;
+                var testEnd = (fold + 1) * foldSize;
+                
+                var trainData = periods.slice(0, testStart).concat(periods.slice(testEnd));
+                var testData = periods.slice(testStart, testEnd);
+                
+                var foldHits = 0;
+                var foldBets = 0;
+                
+                for (var i = 0; i < testData.length; i++) {
+                    var testPeriod = testData[i];
+                    var historyStart = Math.max(0, testStart + i - 50);
+                    var historyData = trainData.slice(historyStart);
+                    
+                    if (historyData.length < 10) continue;
+                    
+                    var currentFeatures = extractCurrentFeaturesForValidation(historyData);
+                    if (!currentFeatures) continue;
+                    
+                    var bestPattern = null;
+                    var bestSim = 0;
+                    
+                    for (var j = 0; j < patterns.length; j++) {
+                        var pattern = patterns[j];
+                        if (!pattern || !pattern.features) continue;
+                        
+                        var sim = calculateWeightedDistance(currentFeatures, pattern.features);
+                        if (sim > bestSim && sim > 0.3) {
+                            bestSim = sim;
+                            bestPattern = pattern;
+                        }
+                    }
+                    
+                    if (bestPattern) {
+                        foldBets++;
+                        if (bestPattern.prediction === testPeriod.back3) {
+                            foldHits++;
+                        }
+                    }
+                }
+                
+                if (foldBets > 0) {
+                    hitRates.push((foldHits / foldBets) * 100);
+                }
+            }
+            
+            if (hitRates.length === 0) {
+                return { folds: k, avgHitRate: 0, variance: 0 };
+            }
+            
+            var avgHitRate = hitRates.reduce(function(a, b) { return a + b; }, 0) / hitRates.length;
+            var variance = hitRates.reduce(function(sum, rate) {
+                return sum + Math.pow(rate - avgHitRate, 2);
+            }, 0) / hitRates.length;
+            
+            return {
+                folds: k,
+                avgHitRate: avgHitRate,
+                variance: variance,
+                hitRates: hitRates
+            };
+        }
+        
+        function extractCurrentFeaturesForValidation(historyData) {
+            if (historyData.length < 20) return null;
+            
+            var recent = historyData.slice(-20);
+            var featureVector = [];
+            
+            var back3Values = [];
+            var mid3Values = [];
+            var front3Values = [];
+            var sumValues = [];
+            
+            for (var i = 0; i < recent.length; i++) {
+                var p = recent[i];
+                back3Values.push(parseInt(p.back3 || '0'));
+                mid3Values.push(parseInt(p.mid3 || '0'));
+                front3Values.push(parseInt(p.front3 || '0'));
+                
+                var numStr = p.number || p.num || '';
+                if (numStr.length >= 5) {
+                    var digits = numStr.split('').map(Number);
+                    sumValues.push(digits.reduce(function(a, b) { return a + b; }, 0));
+                }
+            }
+            
+            var length = recent.length;
+            featureVector.push(normalizeFeature(length, 0, 100));
+            
+            var consecutive = calculateConsecutiveCounts(back3Values);
+            featureVector.push(normalizeFeature(consecutive.maxRed, 0, 20));
+            featureVector.push(normalizeFeature(consecutive.maxGreen, 0, 20));
+            featureVector.push(normalizeFeature(consecutive.avgRed, 0, 10));
+            featureVector.push(normalizeFeature(consecutive.avgGreen, 0, 10));
+            
+            var oscillation = calculateOscillationCount(back3Values, 5);
+            featureVector.push(normalizeFeature(oscillation, 0, recent.length));
+            
+            var maxVal = Math.max.apply(Math, back3Values);
+            var minVal = Math.min.apply(Math, back3Values);
+            featureVector.push(normalizeFeature(maxVal, 0, 999));
+            featureVector.push(normalizeFeature(minVal, 0, 999));
+            
+            var breakout = calculateBreakoutCount(back3Values, 10);
+            featureVector.push(normalizeFeature(breakout, 0, recent.length));
+            
+            var slope = calculateSlope(back3Values, 10);
+            featureVector.push(normalizeFeature(slope, -50, 50));
+            
+            var period = recent.length;
+            featureVector.push(normalizeFeature(period, 0, 100));
+            
+            var volatility = calculateVolatility(back3Values);
+            featureVector.push(normalizeFeature(volatility, 0, 500));
+            
+            var atr = calculateATR(back3Values, 14);
+            featureVector.push(normalizeFeature(atr, 0, 100));
+            
+            var rsiArray = calculateRSI(back3Values, 14);
+            var rsi = rsiArray && rsiArray.length > 0 ? rsiArray[rsiArray.length - 1] : 50;
+            featureVector.push(normalizeFeature(rsi, 0, 100));
+            
+            var macdResult = calculateMACD(back3Values, 12, 26, 9);
+            var macd = macdResult && macdResult.macd && macdResult.macd.length > 0 ? macdResult.macd[macdResult.macd.length - 1] : 0;
+            featureVector.push(normalizeFeature(macd, -50, 50));
+            
+            var ema12 = calculateEMA(back3Values, 12);
+            var emaValue = ema12.length > 0 ? ema12[ema12.length - 1] : 0;
+            featureVector.push(normalizeFeature(emaValue, 0, 999));
+            
+            var ema26 = calculateEMA(back3Values, 26);
+            var ema26Value = ema26.length > 0 ? ema26[ema26.length - 1] : 0;
+            featureVector.push(normalizeFeature(ema26Value, 0, 999));
+            
+            var macdSignal = macdResult && macdResult.signal && macdResult.signal.length > 0 ? macdResult.signal[macdResult.signal.length - 1] : 0;
+            featureVector.push(normalizeFeature(macdSignal, -50, 50));
+            
+            for (var i = 1; i < recent.length; i++) {
+                var curr = recent[i];
+                var prev = recent[i-1];
+                
+                var currBack3 = parseInt(curr.back3 || '0');
+                var prevBack3 = parseInt(prev.back3 || '0');
+                var currMid3 = parseInt(curr.mid3 || '0');
+                var prevMid3 = parseInt(prev.mid3 || '0');
+                var currFront3 = parseInt(curr.front3 || '0');
+                var prevFront3 = parseInt(prev.front3 || '0');
+                
+                featureVector.push(normalizeFeature(currBack3 - prevBack3, -999, 999));
+                featureVector.push(normalizeFeature(currMid3 - prevMid3, -999, 999));
+                featureVector.push(normalizeFeature(currFront3 - prevFront3, -999, 999));
+            }
+            
+            if (sumValues.length > 0) {
+                var sumMean = sumValues.reduce(function(a, b) { return a + b; }, 0) / sumValues.length;
+                var sumStd = Math.sqrt(sumValues.map(function(v) { return Math.pow(v - sumMean, 2); }).reduce(function(a, b) { return a + b; }, 0) / sumValues.length);
+                featureVector.push(normalizeFeature(sumMean, 0, 50));
+                featureVector.push(normalizeFeature(sumStd, 0, 20));
+                
+                var spanValues = [];
+                for (var i = 0; i < recent.length; i++) {
+                    var numStr = recent[i].number || recent[i].num || '';
+                    if (numStr.length >= 5) {
+                        var digits = numStr.split('').map(Number);
+                        spanValues.push(Math.max.apply(null, digits) - Math.min.apply(null, digits));
+                    }
+                }
+                
+                if (spanValues.length > 0) {
+                    var spanMean = spanValues.reduce(function(a, b) { return a + b; }, 0) / spanValues.length;
+                    featureVector.push(normalizeFeature(spanMean, 0, 10));
+                } else {
+                    featureVector.push(0.5);
+                }
+                
+                var oddRatios = [];
+                var bigRatios = [];
+                for (var i = 0; i < recent.length; i++) {
+                    var numStr = recent[i].number || recent[i].num || '';
+                    if (numStr.length >= 5) {
+                        var digits = numStr.split('').map(Number);
+                        oddRatios.push(digits.filter(function(d) { return d % 2 === 1; }).length / 5);
+                        bigRatios.push(digits.filter(function(d) { return d >= 5; }).length / 5);
+                    }
+                }
+                
+                if (oddRatios.length > 0) {
+                    var oddMean = oddRatios.reduce(function(a, b) { return a + b; }, 0) / oddRatios.length;
+                    var bigMean = bigRatios.reduce(function(a, b) { return a + b; }, 0) / bigRatios.length;
+                    featureVector.push(oddMean);
+                    featureVector.push(bigMean);
+                } else {
+                    featureVector.push(0.5);
+                    featureVector.push(0.5);
+                }
+            } else {
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+            }
+            
+            var sumZones = [0, 0, 0, 0, 0];
+            for (var i = 0; i < sumValues.length; i++) {
+                var s = sumValues[i];
+                if (s <= 10) sumZones[0]++;
+                else if (s <= 15) sumZones[1]++;
+                else if (s <= 20) sumZones[2]++;
+                else if (s <= 25) sumZones[3]++;
+                else sumZones[4]++;
+            }
+            var totalSums = sumValues.length || 1;
+            for (var j = 0; j < 5; j++) {
+                featureVector.push((sumZones[j] / totalSums));
+            }
+            
+            var missingAnalysis = calculateMissingValues(historyData);
+            for (var j = 0; j < 10; j++) {
+                featureVector.push(normalizeFeature(missingAnalysis[j] || 0, 0, 50));
+            }
+            
+            if (mid3Values.length >= 5) {
+                var ema5Mid = calculateEMA(mid3Values, 5);
+                var ema10Mid = calculateEMA(mid3Values, 10);
+                var slopeMid = calculateSlope(mid3Values, 10);
+                featureVector.push(normalizeFeature(ema5Mid[ema5Mid.length - 1] || 0, 0, 999));
+                featureVector.push(normalizeFeature(ema10Mid[ema10Mid.length - 1] || 0, 0, 999));
+                featureVector.push(normalizeFeature(slopeMid, -50, 50));
+            } else {
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+            }
+            
+            if (front3Values.length >= 5) {
+                var ema5Front = calculateEMA(front3Values, 5);
+                var ema10Front = calculateEMA(front3Values, 10);
+                var slopeFront = calculateSlope(front3Values, 10);
+                featureVector.push(normalizeFeature(ema5Front[ema5Front.length - 1] || 0, 0, 999));
+                featureVector.push(normalizeFeature(ema10Front[ema10Front.length - 1] || 0, 0, 999));
+                featureVector.push(normalizeFeature(slopeFront, -50, 50));
+            } else {
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+            }
+            
+            var periodInfo = historyData[historyData.length - 1];
+            var periodStr = periodInfo.period || '';
+            var month = 1;
+            var weekday = 1;
+            
+            if (periodStr.length >= 6) {
+                var year = parseInt(periodStr.substring(0, 4));
+                var mon = parseInt(periodStr.substring(4, 6));
+                if (!isNaN(year) && !isNaN(mon)) {
+                    var date = new Date(year, mon - 1, 1);
+                    weekday = date.getDay();
+                    month = mon;
+                }
+            }
+            
+            featureVector.push(normalizeFeature(weekday, 0, 7));
+            featureVector.push(normalizeFeature(month, 1, 12));
+            
+            return featureVector;
         }
         
         function generateRandomBets(count) {
@@ -5606,11 +6779,85 @@
             return bets;
         }
         
+        function normalizeFeature(value, min, max) {
+            if (max === min) return 0.5;
+            return Math.max(0, Math.min(1, (value - min) / (max - min)));
+        }
+        
         function extractPattern(historyData, prediction, hit) {
             if (!historyData || historyData.length < 10) return null;
             
-            var recent = historyData.slice(-15);
+            var recent = historyData.slice(-20);
             var featureVector = [];
+            
+            var back3Values = [];
+            var mid3Values = [];
+            var front3Values = [];
+            var sumValues = [];
+            
+            for (var i = 0; i < recent.length; i++) {
+                var p = recent[i];
+                back3Values.push(parseInt(p.back3 || '0'));
+                mid3Values.push(parseInt(p.mid3 || '0'));
+                front3Values.push(parseInt(p.front3 || '0'));
+                
+                var numStr = p.number || p.num || '';
+                if (numStr.length >= 5) {
+                    var digits = numStr.split('').map(Number);
+                    sumValues.push(digits.reduce(function(a, b) { return a + b; }, 0));
+                }
+            }
+            
+            var length = recent.length;
+            featureVector.push(normalizeFeature(length, 0, 100));
+            
+            var consecutive = calculateConsecutiveCounts(back3Values);
+            featureVector.push(normalizeFeature(consecutive.maxRed, 0, 20));
+            featureVector.push(normalizeFeature(consecutive.maxGreen, 0, 20));
+            featureVector.push(normalizeFeature(consecutive.avgRed, 0, 10));
+            featureVector.push(normalizeFeature(consecutive.avgGreen, 0, 10));
+            
+            var oscillation = calculateOscillationCount(back3Values, 5);
+            featureVector.push(normalizeFeature(oscillation, 0, recent.length));
+            
+            var maxVal = Math.max.apply(Math, back3Values);
+            var minVal = Math.min.apply(Math, back3Values);
+            featureVector.push(normalizeFeature(maxVal, 0, 999));
+            featureVector.push(normalizeFeature(minVal, 0, 999));
+            
+            var breakout = calculateBreakoutCount(back3Values, 10);
+            featureVector.push(normalizeFeature(breakout, 0, recent.length));
+            
+            var slope = calculateSlope(back3Values, 10);
+            featureVector.push(normalizeFeature(slope, -50, 50));
+            
+            var period = recent.length;
+            featureVector.push(normalizeFeature(period, 0, 100));
+            
+            var volatility = calculateVolatility(back3Values);
+            featureVector.push(normalizeFeature(volatility, 0, 500));
+            
+            var atr = calculateATR(back3Values, 14);
+            featureVector.push(normalizeFeature(atr, 0, 100));
+            
+            var rsiArray = calculateRSI(back3Values, 14);
+            var rsi = rsiArray && rsiArray.length > 0 ? rsiArray[rsiArray.length - 1] : 50;
+            featureVector.push(normalizeFeature(rsi, 0, 100));
+            
+            var macdResult = calculateMACD(back3Values, 12, 26, 9);
+            var macd = macdResult && macdResult.macd && macdResult.macd.length > 0 ? macdResult.macd[macdResult.macd.length - 1] : 0;
+            featureVector.push(normalizeFeature(macd, -50, 50));
+            
+            var ema12 = calculateEMA(back3Values, 12);
+            var emaValue = ema12.length > 0 ? ema12[ema12.length - 1] : 0;
+            featureVector.push(normalizeFeature(emaValue, 0, 999));
+            
+            var ema26 = calculateEMA(back3Values, 26);
+            var ema26Value = ema26.length > 0 ? ema26[ema26.length - 1] : 0;
+            featureVector.push(normalizeFeature(ema26Value, 0, 999));
+            
+            var macdSignal = macdResult && macdResult.signal && macdResult.signal.length > 0 ? macdResult.signal[macdResult.signal.length - 1] : 0;
+            featureVector.push(normalizeFeature(macdSignal, -50, 50));
             
             for (var i = 1; i < recent.length; i++) {
                 var curr = recent[i];
@@ -5623,59 +6870,104 @@
                 var currFront3 = parseInt(curr.front3 || '0');
                 var prevFront3 = parseInt(prev.front3 || '0');
                 
-                featureVector.push(currBack3 - prevBack3);
-                featureVector.push(currMid3 - prevMid3);
-                featureVector.push(currFront3 - prevFront3);
-            }
-            
-            var sumValues = [];
-            var spanValues = [];
-            var oddRatios = [];
-            var bigRatios = [];
-            
-            for (var i = 0; i < recent.length; i++) {
-                var p = recent[i];
-                var numStr = p.number || p.num || '';
-                if (numStr.length >= 5) {
-                    var digits = numStr.split('').map(Number);
-                    sumValues.push(digits.reduce(function(a, b) { return a + b; }, 0));
-                    spanValues.push(Math.max.apply(null, digits) - Math.min.apply(null, digits));
-                    oddRatios.push(digits.filter(function(d) { return d % 2 === 1; }).length / 5);
-                    bigRatios.push(digits.filter(function(d) { return d >= 5; }).length / 5);
-                }
+                featureVector.push(normalizeFeature(currBack3 - prevBack3, -999, 999));
+                featureVector.push(normalizeFeature(currMid3 - prevMid3, -999, 999));
+                featureVector.push(normalizeFeature(currFront3 - prevFront3, -999, 999));
             }
             
             if (sumValues.length > 0) {
                 var sumMean = sumValues.reduce(function(a, b) { return a + b; }, 0) / sumValues.length;
                 var sumStd = Math.sqrt(sumValues.map(function(v) { return Math.pow(v - sumMean, 2); }).reduce(function(a, b) { return a + b; }, 0) / sumValues.length);
-                featureVector.push(Math.round(sumMean));
-                featureVector.push(Math.round(sumStd));
+                featureVector.push(normalizeFeature(sumMean, 0, 50));
+                featureVector.push(normalizeFeature(sumStd, 0, 20));
                 
-                var spanMean = spanValues.reduce(function(a, b) { return a + b; }, 0) / spanValues.length;
-                featureVector.push(Math.round(spanMean));
+                var spanValues = [];
+                for (var i = 0; i < recent.length; i++) {
+                    var numStr = recent[i].number || recent[i].num || '';
+                    if (numStr.length >= 5) {
+                        var digits = numStr.split('').map(Number);
+                        spanValues.push(Math.max.apply(null, digits) - Math.min.apply(null, digits));
+                    }
+                }
                 
-                var oddMean = oddRatios.reduce(function(a, b) { return a + b; }, 0) / oddRatios.length;
-                var bigMean = bigRatios.reduce(function(a, b) { return a + b; }, 0) / bigRatios.length;
-                featureVector.push(Math.round(oddMean * 100));
-                featureVector.push(Math.round(bigMean * 100));
+                if (spanValues.length > 0) {
+                    var spanMean = spanValues.reduce(function(a, b) { return a + b; }, 0) / spanValues.length;
+                    featureVector.push(normalizeFeature(spanMean, 0, 10));
+                } else {
+                    featureVector.push(0.5);
+                }
+                
+                var oddRatios = [];
+                var bigRatios = [];
+                for (var i = 0; i < recent.length; i++) {
+                    var numStr = recent[i].number || recent[i].num || '';
+                    if (numStr.length >= 5) {
+                        var digits = numStr.split('').map(Number);
+                        oddRatios.push(digits.filter(function(d) { return d % 2 === 1; }).length / 5);
+                        bigRatios.push(digits.filter(function(d) { return d >= 5; }).length / 5);
+                    }
+                }
+                
+                if (oddRatios.length > 0) {
+                    var oddMean = oddRatios.reduce(function(a, b) { return a + b; }, 0) / oddRatios.length;
+                    var bigMean = bigRatios.reduce(function(a, b) { return a + b; }, 0) / bigRatios.length;
+                    featureVector.push(oddMean);
+                    featureVector.push(bigMean);
+                } else {
+                    featureVector.push(0.5);
+                    featureVector.push(0.5);
+                }
             } else {
-                featureVector.push(0, 0, 0, 0, 0);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
             }
             
-            var back3Values = [];
-            for (var i = 0; i < recent.length; i++) {
-                back3Values.push(parseInt(recent[i].back3 || '0'));
+            var sumZones = [0, 0, 0, 0, 0];
+            for (var i = 0; i < sumValues.length; i++) {
+                var s = sumValues[i];
+                if (s <= 10) sumZones[0]++;
+                else if (s <= 15) sumZones[1]++;
+                else if (s <= 20) sumZones[2]++;
+                else if (s <= 25) sumZones[3]++;
+                else sumZones[4]++;
+            }
+            var totalSums = sumValues.length || 1;
+            for (var j = 0; j < 5; j++) {
+                featureVector.push((sumZones[j] / totalSums));
             }
             
-            if (back3Values.length >= 5) {
-                var ema5 = calculateSimpleMA(back3Values.slice(-5));
-                var ema10 = calculateSimpleMA(back3Values.slice(-10));
-                var volatility = calculateVolatility(back3Values);
-                featureVector.push(Math.round(ema5));
-                featureVector.push(Math.round(ema10));
-                featureVector.push(Math.round(volatility));
+            var missingAnalysis = calculateMissingValues(historyData);
+            for (var j = 0; j < 10; j++) {
+                featureVector.push(normalizeFeature(missingAnalysis[j] || 0, 0, 50));
+            }
+            
+            if (mid3Values.length >= 5) {
+                var ema5Mid = calculateEMA(mid3Values, 5);
+                var ema10Mid = calculateEMA(mid3Values, 10);
+                var slopeMid = calculateSlope(mid3Values, 10);
+                featureVector.push(normalizeFeature(ema5Mid[ema5Mid.length - 1] || 0, 0, 999));
+                featureVector.push(normalizeFeature(ema10Mid[ema10Mid.length - 1] || 0, 0, 999));
+                featureVector.push(normalizeFeature(slopeMid, -50, 50));
             } else {
-                featureVector.push(0, 0, 0);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+            }
+            
+            if (front3Values.length >= 5) {
+                var ema5Front = calculateEMA(front3Values, 5);
+                var ema10Front = calculateEMA(front3Values, 10);
+                var slopeFront = calculateSlope(front3Values, 10);
+                featureVector.push(normalizeFeature(ema5Front[ema5Front.length - 1] || 0, 0, 999));
+                featureVector.push(normalizeFeature(ema10Front[ema10Front.length - 1] || 0, 0, 999));
+                featureVector.push(normalizeFeature(slopeFront, -50, 50));
+            } else {
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
             }
             
             var periodInfo = historyData[historyData.length - 1];
@@ -5693,8 +6985,8 @@
                 }
             }
             
-            featureVector.push(weekday);
-            featureVector.push(month);
+            featureVector.push(normalizeFeature(weekday, 0, 7));
+            featureVector.push(normalizeFeature(month, 1, 12));
             
             return {
                 features: featureVector,
@@ -5702,6 +6994,62 @@
                 hit: hit,
                 timestamp: Date.now()
             };
+        }
+        
+        function calculateMissingValues(historyData) {
+            var missing = new Array(10).fill(0);
+            var lastOccurrence = new Array(10).fill(-1);
+            
+            for (var i = historyData.length - 1; i >= 0; i--) {
+                var numStr = String(historyData[i].back3 || '').padStart(3, '0');
+                var digits = numStr.split('').map(Number);
+                for (var j = 0; j < digits.length; j++) {
+                    var d = digits[j];
+                    if (lastOccurrence[d] === -1) {
+                        lastOccurrence[d] = historyData.length - 1 - i;
+                    }
+                }
+            }
+            
+            for (var d = 0; d < 10; d++) {
+                missing[d] = lastOccurrence[d] === -1 ? historyData.length : lastOccurrence[d];
+            }
+            
+            return missing;
+        }
+        
+        function calculateConsecutiveMisses(historyData) {
+            var result = { back3: 0, mid3: 0, front3: 0 };
+            
+            if (historyData.length < 2) return result;
+            
+            var recent = historyData.slice(-20);
+            var back3Set = new Set();
+            var mid3Set = new Set();
+            var front3Set = new Set();
+            
+            for (var i = 0; i < recent.length; i++) {
+                back3Set.add(recent[i].back3 || '0');
+                mid3Set.add(recent[i].mid3 || '0');
+                front3Set.add(recent[i].front3 || '0');
+            }
+            
+            var last = historyData[historyData.length - 1];
+            var prev = historyData[historyData.length - 2];
+            
+            var lastBack3 = last.back3 || '0';
+            var lastMid3 = last.mid3 || '0';
+            var lastFront3 = last.front3 || '0';
+            
+            var prevBack3 = prev.back3 || '0';
+            var prevMid3 = prev.mid3 || '0';
+            var prevFront3 = prev.front3 || '0';
+            
+            if (lastBack3 !== prevBack3) result.back3 = 1;
+            if (lastMid3 !== prevMid3) result.mid3 = 1;
+            if (lastFront3 !== prevFront3) result.front3 = 1;
+            
+            return result;
         }
         
         function calculateSimpleMA(data) {
@@ -5722,23 +7070,23 @@
         function onNewDrawData(newData) {
             console.log('[AI] New draw data received:', newData.period);
             
-            // 1. 验证上一次分析结果是否命中（自动同步统计）
             verifyLastAnalysis(newData);
             
             if (newData.period === lastAnalyzedPeriod) return;
             lastAnalyzedPeriod = newData.period;
             
-            // 2. 如果开启了自动分割，使用模板自动执行分割
             if (autoSplitEnabled && autoSplitTemplateReady) {
-                console.log('[AutoSplit] 检测到新开奖数据，触发自动分割');
+                console.log('[AutoSplit] 检测到新开奖数据，触发自动分割（分析将在分割完成后执行）');
+                pendingAutoTraining = true;
                 setTimeout(function() {
                     runAutoSplitWithTemplate();
                 }, 1000);
+            } else {
+                console.log('[AI] 自动分割未开启，直接执行分析');
+                performAutoAnalysis(newData).catch(function(err) {
+                    console.error('[AI] Auto-analysis error:', err);
+                });
             }
-            
-            performAutoAnalysis(newData).catch(function(err) {
-                console.error('[AI] Auto-analysis error:', err);
-            });
         }
         
         function performAutoAnalysis(newPeriod) {
@@ -5767,9 +7115,9 @@
                         console.log('[AI] Period saved to Data Lake:', newPeriod.period);
                         updateAIStatsUI();
                         
-                        if (drawData.length >= 50 && !aiTrainingCompleted) {
+                        if (drawData.length >= 50 && !aiTrainingCompleted && !isTraining) {
                             startAutoTraining();
-                        } else if (aiTrainingCompleted && newPeriod.period !== aiLastTrainedPeriod) {
+                        } else if (aiTrainingCompleted && newPeriod.period !== aiLastTrainedPeriod && !isTraining) {
                             aiTrainingCompleted = false;
                             startAutoTraining();
                         }
@@ -5839,6 +7187,15 @@
             
             var patternEl = document.getElementById('aiPatternCount');
             if (patternEl) patternEl.textContent = aiPatterns.length;
+            
+            var positiveCount = aiPatterns.filter(function(p) { return p && p.patternType === 'positive'; }).length;
+            var negativeCount = aiPatterns.filter(function(p) { return p && p.patternType === 'negative'; }).length;
+            
+            var posEl = document.getElementById('aiPositiveCount');
+            if (posEl) posEl.textContent = positiveCount;
+            
+            var negEl = document.getElementById('aiNegativeCount');
+            if (negEl) negEl.textContent = negativeCount;
         }
         
         function startAITraining() {
@@ -5852,21 +7209,39 @@
             if (barEl) barEl.style.width = '0%';
             if (infoEl) infoEl.textContent = '初始化...';
             
-            runSelfPlaySimulation(50000, function(msg) {
+            var v8Count = aiPatterns.filter(function(p) { return p && p.version === 8; }).length;
+            if (v8Count > 0) {
+                aiPatterns = aiPatterns.filter(function(p) { return p && p.version === 8; });
+                localStorage.setItem('lotteryPatterns', JSON.stringify(aiPatterns));
+                console.log('[AI] Cleared old patterns (keeping v8), remaining:', aiPatterns.length);
+            } else {
+                console.log('[AI] No v8 patterns yet, keeping all for now');
+            }
+            
+            runSelfPlaySimulation(5000, function(msg) {
                 if (msg.type === 'progress') {
                     if (progressEl) progressEl.textContent = msg.progress.toFixed(1) + '%';
                     if (barEl) barEl.style.width = msg.progress + '%';
-                    if (infoEl) infoEl.textContent = '已模拟 ' + msg.total + ' 期，命中 ' + msg.currentHits + ' 次';
+                    var successRate = msg.total > 0 ? (msg.currentHits / msg.total * 100).toFixed(1) : 0;
+                    if (infoEl) infoEl.textContent = '已模拟 ' + msg.total + ' 期，成功预测 ' + msg.currentHits + ' 期 (' + successRate + '%)';
                 } else if (msg.type === 'complete') {
                     if (progressEl) progressEl.textContent = '100%';
                     if (barEl) barEl.style.width = '100%';
-                    if (infoEl) infoEl.textContent = '训练完成！命中率: ' + msg.hitRate.toFixed(2) + '%';
+                    var displayRate = msg.periodHitRate || msg.hitRate || 0;
+                    if (infoEl) infoEl.textContent = '训练完成！预测成功率: ' + displayRate.toFixed(1) + '%';
                     
                     var hitRateEl = document.getElementById('aiHitRate');
-                    if (hitRateEl) hitRateEl.textContent = msg.hitRate.toFixed(2);
+                    if (hitRateEl) hitRateEl.textContent = displayRate.toFixed(1);
                     
                     loadStoredPatterns();
                     runAIAnalysis();
+                    
+                    getAllPeriodsFromDB().then(function(periods) {
+                        if (periods && periods.length > 100) {
+                            console.log('[AI] Updating optimized weights based on feature importance...');
+                            updateOptimizedWeights(periods);
+                        }
+                    });
                     
                     setTimeout(function() {
                         if (statusEl) statusEl.style.display = 'none';
@@ -5875,34 +7250,173 @@
             });
         }
         
+        var aiTrainerWorker = null;
+        var isTraining = false;
+        
         function startAutoTraining() {
+            if (isTraining) {
+                console.log('[AI] Training already in progress');
+                return;
+            }
+            
             console.log('[AI] Starting auto training...');
             showAutoTrainingStatus();
-            runSelfPlaySimulation(2000, function(msg) {
-                if (msg.type === 'progress') {
-                    updateAutoTrainingProgress(msg.progress, msg.total, msg.currentHits);
-                } else if (msg.type === 'complete') {
-                    console.log('[AI] Auto training complete:', msg.hitRate.toFixed(2) + '%');
-                    console.log('[AI] Patterns found:', msg.patterns ? msg.patterns.length : 0);
-                    
-                    if (msg.patterns && msg.patterns.length > 0) {
-                        for (var i = 0; i < msg.patterns.length; i++) {
-                            savePatternToDB(msg.patterns[i]);
-                        }
-                        console.log('[AI] Patterns saved:', msg.patterns.length);
+            isTraining = true;
+            
+            fillDataLakeFromDrawData();
+            
+            getAllPeriodsFromDB().then(function(periods) {
+                if (!periods || periods.length < 20) {
+                    console.log('[AI] Not enough data for training, trying to fill data lake');
+                    fillDataLakeFromDrawData();
+                    periods = aiDataLake;
+                    if (!periods || periods.length < 20) {
+                        isTraining = false;
+                        hideAutoTrainingStatus(0);
+                        return;
                     }
-                    
-                    aiTrainingCompleted = true;
-                    if (drawData.length > 0) {
-                        aiLastTrainedPeriod = drawData[drawData.length - 1].period;
-                    }
-                    savePatterns();
-                    
-                    updateAIStatsUI();
-                    hideAutoTrainingStatus(msg.hitRate);
-                    
-                    setTimeout(autoBacktestIfNeeded, 2000);
                 }
+                
+                if (aiTrainerWorker) {
+                    aiTrainerWorker.terminate();
+                }
+                
+                try {
+                    aiTrainerWorker = new Worker('worker/ai_trainer.js');
+                    
+                    aiTrainerWorker.onmessage = function(e) {
+                        var msg = e.data;
+                        
+                        if (msg.type === 'progress') {
+                            updateAutoTrainingProgress(msg.progress, msg.total, msg.currentHits);
+                        } else if (msg.type === 'complete') {
+                            var displayRate = msg.periodHitRate || msg.hitRate || 0;
+                            console.log('[AI] Auto training complete:', displayRate.toFixed(1) + '%');
+                            console.log('[AI] Patterns found:', msg.patterns ? msg.patterns.length : 0);
+                            console.log('[AI] Total hits:', msg.totalHits);
+                            
+                            if (msg.patterns && msg.patterns.length > 0) {
+                                console.log('[AI] Patterns received from worker:', msg.patterns.length);
+                                console.log('[AI] Patterns before save:', aiPatterns.length);
+                                for (var i = 0; i < msg.patterns.length; i++) {
+                                    savePatternToDB(msg.patterns[i]);
+                                }
+                                console.log('[AI] Patterns saved:', msg.patterns.length);
+                                console.log('[AI] Patterns after save:', aiPatterns.length);
+                                
+                                var v5Count = aiPatterns.filter(function(p) { return p && p.version === 5; }).length;
+                                console.log('[AI] Version 5 patterns:', v5Count);
+                            } else {
+                                console.log('[AI] WARNING: No patterns returned from worker!');
+                            }
+                            
+                            if (msg.weights) {
+                                saveReinforcementWeights(msg.weights);
+                            }
+                            
+                            aiTrainingCompleted = true;
+                            
+                            getAllPeriodsFromDB().then(function(periods) {
+                                if (periods && periods.length > 100) {
+                                    console.log('[AI] Updating optimized weights based on feature importance...');
+                                    updateOptimizedWeights(periods);
+                                }
+                            });
+                            if (drawData.length > 0) {
+                                aiLastTrainedPeriod = drawData[drawData.length - 1].period;
+                            }
+                            savePatterns();
+                            
+                            if (backendEnabled) {
+                                syncPatternsToBackend().then(function() {
+                                    console.log('[AI] Patterns synced to backend');
+                                });
+                                syncDataLakeToBackend().then(function() {
+                                    console.log('[AI] Data Lake synced to backend');
+                                });
+                            }
+                            
+                            updateAIStatsUI();
+                            hideAutoTrainingStatus(msg.hitRate);
+                            
+                            isTraining = false;
+                            setTimeout(autoBacktestIfNeeded, 2000);
+                        } else if (msg.type === 'error') {
+                            console.error('[AI] Training error:', msg.error);
+                            isTraining = false;
+                            hideAutoTrainingStatus(0);
+                        }
+                    };
+                    
+                    aiTrainerWorker.onerror = function(e) {
+                        console.error('[AI] Worker error:', e.message);
+                        isTraining = false;
+                        hideAutoTrainingStatus(0);
+                    };
+                    
+                    aiTrainerWorker.postMessage({ type: 'train', periods: periods, simulationCount: 2000 });
+                    
+                } catch (e) {
+                    console.error('[AI] Failed to create worker, falling back to main thread:', e);
+                    
+                    runSelfPlaySimulation(2000, function(msg) {
+                        if (msg.type === 'progress') {
+                            updateAutoTrainingProgress(msg.progress, msg.total, msg.currentHits);
+                        } else if (msg.type === 'complete') {
+                            var displayRate = msg.periodHitRate || msg.hitRate || 0;
+                            console.log('[AI] Auto training complete:', displayRate.toFixed(1) + '%');
+                            console.log('[AI] Patterns found:', msg.patterns ? msg.patterns.length : 0);
+                            console.log('[AI] Total hits:', msg.totalHits);
+                            
+                            if (msg.patterns && msg.patterns.length > 0) {
+                                console.log('[AI] Patterns received from worker:', msg.patterns.length);
+                                console.log('[AI] Patterns before save:', aiPatterns.length);
+                                for (var i = 0; i < msg.patterns.length; i++) {
+                                    savePatternToDB(msg.patterns[i]);
+                                }
+                                console.log('[AI] Patterns saved:', msg.patterns.length);
+                                console.log('[AI] Patterns after save:', aiPatterns.length);
+                                
+                                var v5Count = aiPatterns.filter(function(p) { return p && p.version === 5; }).length;
+                                console.log('[AI] Version 5 patterns:', v5Count);
+                            } else {
+                                console.log('[AI] WARNING: No patterns returned from worker!');
+                            }
+                            
+                            aiTrainingCompleted = true;
+                            
+                            getAllPeriodsFromDB().then(function(periods) {
+                                if (periods && periods.length > 100) {
+                                    console.log('[AI] Updating optimized weights based on feature importance...');
+                                    updateOptimizedWeights(periods);
+                                }
+                            });
+                            if (drawData.length > 0) {
+                                aiLastTrainedPeriod = drawData[drawData.length - 1].period;
+                            }
+                            savePatterns();
+                            
+                            if (backendEnabled) {
+                                syncPatternsToBackend().then(function() {
+                                    console.log('[AI] Patterns synced to backend');
+                                });
+                                syncDataLakeToBackend().then(function() {
+                                    console.log('[AI] Data Lake synced to backend');
+                                });
+                            }
+                            
+                            updateAIStatsUI();
+                            hideAutoTrainingStatus(msg.hitRate);
+                            
+                            isTraining = false;
+                            setTimeout(autoBacktestIfNeeded, 2000);
+                        }
+                    });
+                }
+            }).catch(function(err) {
+                console.error('[AI] Error getting periods:', err);
+                isTraining = false;
+                hideAutoTrainingStatus(0);
             });
         }
         
@@ -5925,7 +7439,8 @@
             
             if (progressEl) progressEl.textContent = progress.toFixed(1) + '%';
             if (barEl) barEl.style.width = progress + '%';
-            if (infoEl) infoEl.textContent = '📡 自动训练: ' + total + '期 / 命中 ' + hits + '次';
+            var successRate = total > 0 ? (hits / total * 100).toFixed(1) : 0;
+            if (infoEl) infoEl.textContent = '📡 自动训练: ' + total + '期 / 成功预测 ' + hits + '期 (' + successRate + '%)';
         }
         
         function hideAutoTrainingStatus(hitRate) {
@@ -5933,8 +7448,8 @@
             var infoEl = document.getElementById('aiTrainingInfo');
             var hitRateEl = document.getElementById('aiHitRate');
             
-            if (infoEl) infoEl.textContent = '✅ 自动训练完成！命中率: ' + hitRate.toFixed(2) + '%';
-            if (hitRateEl) hitRateEl.textContent = hitRate.toFixed(2);
+            if (infoEl) infoEl.textContent = '✅ 自动训练完成！预测成功率: ' + hitRate.toFixed(1) + '%';
+            if (hitRateEl) hitRateEl.textContent = hitRate.toFixed(1);
             
             updateAIStatsUI();
             
@@ -6133,8 +7648,8 @@
         function runAIAnalysis() {
             console.log('[AI] runAIAnalysis called, currentMode:', currentMode, 'splitResults:', window.splitResults ? window.splitResults.length : 'null');
             
-            var thresholdRound1 = parseInt(document.getElementById('aiThresholdRound1').value) || 60;
-            var thresholdRound2 = parseInt(document.getElementById('aiThresholdRound2').value) || 60;
+            var thresholdRound1 = parseInt(document.getElementById('aiThresholdRound1').value) || 30;
+            var thresholdRound2 = parseInt(document.getElementById('aiThresholdRound2').value) || 30;
             var maxRetries = parseInt(document.getElementById('aiMaxRetries').value) || 50;
             
             aiAnalysisRunning = true;
@@ -6168,7 +7683,7 @@
             aiAnalysisTimeEl.textContent = '分析时间: ' + new Date().toLocaleString();
             
             if (results.recommendations.length === 0) {
-                aiSummaryEl.innerHTML = '<p style="color:#f0883e;">⚠️ 当前无符合条件的推荐（评分均低于40分）</p>';
+                aiSummaryEl.innerHTML = '<p style="color:#f0883e;">⚠️ 当前无符合条件的推荐（评分均低于20分）</p>';
                 aiRecommendationsEl.innerHTML = '<p style="text-align:center;color:#8b949e;padding:20px;">暂无推荐结果</p>';
                 aiAnalysisRunning = false;
                 return;
@@ -6266,7 +7781,8 @@
                 var patternMatchClass = rec.patternMatchScore >= 70 ? 'high' : (rec.patternMatchScore >= 40 ? 'medium' : 'low');
                 
                 if (rec.position && rec.position !== lastPosition) {
-                    recHtml += '<div class="ai-position-label">' + rec.position + '</div>';
+                    var labelClass = rec.position === '第二次分割最高评分' ? 'ai-position-label highest' : 'ai-position-label';
+                    recHtml += '<div class="' + labelClass + '">' + rec.position + '</div>';
                     lastPosition = rec.position;
                 }
                 
@@ -6371,7 +7887,16 @@
                 var label = labels[i];
                 var roundInfo = roundIndices[i];
                 
+                var isAntiPattern = filterByAntiPatterns(group);
+                if (isAntiPattern) {
+                    console.log('[AI] Group', label, 'filtered by anti-pattern, skipping');
+                    continue;
+                }
+                
                 var scores = calculateGroupScores(group, i);
+                
+                var antiPatternMatch = calculateAntiPatternMatch(group);
+                var adjustedPatternScore = Math.max(0, scores.patternMatchScore - antiPatternMatch * 0.3);
                 
                 recommendations.push({
                     label: label,
@@ -6385,7 +7910,8 @@
                     streakRate: scores.streakRate,
                     trendScore: scores.trendScore,
                     recentPerformance: scores.recentPerformance,
-                    patternMatchScore: scores.patternMatchScore,
+                    patternMatchScore: adjustedPatternScore,
+                    antiPatternMatch: antiPatternMatch,
                     originalIndex: i
                 });
                 
@@ -6408,13 +7934,16 @@
             }
             
             var finalRecommendations = round1Groups.concat(round2Groups).filter(function(r) {
-                return r.score >= 40;
+                return r.score >= 20;
             });
+            
+            console.log('[AI] Anti-pattern filtering complete, total groups:', allGroups.length, 'after filtering:', recommendations.length);
             
             return {
                 allGroups: allGroups,
                 recommendations: finalRecommendations.slice(0, 10),
-                avgHitRate: allGroups.length > 0 ? totalHitRate / allGroups.length : 0
+                avgHitRate: allGroups.length > 0 ? totalHitRate / allGroups.length : 0,
+                filteredCount: allGroups.length - recommendations.length
             };
         }
         
@@ -6437,20 +7966,26 @@
             
             var patternMatchScore = calculatePatternMatch(group);
             
-            var weights = {
-                hitRate: 0.05,
-                streakRate: 0.05,
-                trendScore: 0.40,
-                recentPerformance: 0.10,
-                patternMatch: 0.40
-            };
+            var missingScore = calculateMissingScore(group);
+            
+            var sumZoneScore = calculateSumZoneScore(group);
+            
+            var positionRepeatScore = calculatePositionRepeatScore(group);
+            
+            var diversityScore = calculateDiversityScore(group);
+            
+            var modelVotes = runEnsembleModels(group, chartIdx);
             
             var totalScore = 
-                hitRate * weights.hitRate +
-                streakRate * weights.streakRate +
-                trendScore * weights.trendScore +
-                recentPerformance * weights.recentPerformance +
-                patternMatchScore * weights.patternMatch;
+                trendScore * 0.40 +
+                patternMatchScore * 0.44 +
+                recentPerformance * 0.10 +
+                hitRate * 0.05 +
+                streakRate * 0.01;
+            
+            totalScore = Math.min(100, Math.max(0, totalScore));
+            
+            console.log('[AI SCORE] Group:', chartIdx, '- trend:', trendScore.toFixed(1), '(40%)', 'pattern:', patternMatchScore.toFixed(1), '(44%)', 'recent:', recentPerformance.toFixed(1), '(10%)', 'hitRate:', hitRate.toFixed(1), '(5%)', 'streak:', streakRate.toFixed(1), '(1%)', 'TOTAL:', totalScore.toFixed(1));
             
             var reasons = [];
             if (hitRate >= 80) reasons.push('历史命中率极高');
@@ -6473,15 +8008,276 @@
             if (patternMatchScore >= 80) reasons.push('高度匹配历史成功模式');
             else if (patternMatchScore >= 60) reasons.push('部分匹配历史模式');
             
+            if (missingScore >= 70) reasons.push('包含热门遗漏号码');
+            if (sumZoneScore >= 70) reasons.push('和值分布合理');
+            if (diversityScore >= 70) reasons.push('号码多样性好');
+            
+            if (modelVotes >= 80) reasons.push('多模型一致推荐');
+            else if (modelVotes >= 60) reasons.push('多数模型推荐');
+            
             return {
                 hitRate: hitRate,
                 streakRate: streakRate,
                 trendScore: trendScore,
                 recentPerformance: recentPerformance,
                 patternMatchScore: patternMatchScore,
+                missingScore: missingScore,
+                sumZoneScore: sumZoneScore,
+                diversityScore: diversityScore,
+                modelVotes: modelVotes,
                 totalScore: totalScore,
-                reason: reasons.slice(0, 3).join('; ')
+                reason: reasons.slice(0, 4).join('; ')
             };
+        }
+        
+        function calculateMissingScore(group) {
+            if (!group || group.length === 0) return 0;
+            
+            var missingValues = calculateMissingValues(drawData);
+            var score = 0;
+            var count = 0;
+            
+            for (var i = 0; i < group.length; i++) {
+                var numStr = String(group[i]).padStart(3, '0');
+                for (var j = 0; j < numStr.length; j++) {
+                    var digit = parseInt(numStr[j]);
+                    var missing = missingValues[digit] || 0;
+                    if (missing >= 5 && missing <= 20) {
+                        score += (20 - missing) * 2;
+                    } else if (missing > 20) {
+                        score += 10;
+                    }
+                    count++;
+                }
+            }
+            
+            return count > 0 ? Math.min(100, Math.max(0, score / count * 3)) : 0;
+        }
+        
+        function calculateSumZoneScore(group) {
+            if (!group || group.length === 0) return 0;
+            
+            var zoneCounts = [0, 0, 0, 0, 0];
+            
+            for (var i = 0; i < group.length; i++) {
+                var numStr = String(group[i]).padStart(3, '0');
+                var sum = numStr.split('').map(Number).reduce(function(a, b) { return a + b; }, 0);
+                
+                if (sum <= 10) zoneCounts[0]++;
+                else if (sum <= 15) zoneCounts[1]++;
+                else if (sum <= 20) zoneCounts[2]++;
+                else if (sum <= 25) zoneCounts[3]++;
+                else zoneCounts[4]++;
+            }
+            
+            var maxCount = Math.max.apply(null, zoneCounts);
+            var minCount = Math.min.apply(null, zoneCounts);
+            
+            if (maxCount === 0) return 50;
+            
+            var balance = 1 - (maxCount - minCount) / Math.max(group.length, 1);
+            
+            return Math.min(100, Math.max(0, balance * 100));
+        }
+        
+        function calculatePositionRepeatScore(group) {
+            if (!group || group.length === 0 || drawData.length < 2) return 50;
+            
+            var lastNum = (drawData[drawData.length - 1].number || drawData[drawData.length - 1].num || '').toString();
+            if (lastNum.length < 3) return 50;
+            
+            var positionMatches = [0, 0, 0];
+            var totalChecked = 0;
+            
+            for (var i = 0; i < group.length; i++) {
+                var numStr = String(group[i]).padStart(3, '0');
+                for (var j = 0; j < 3; j++) {
+                    if (numStr[j] === lastNum[j]) {
+                        positionMatches[j]++;
+                    }
+                    totalChecked++;
+                }
+            }
+            
+            var avgMatchRate = positionMatches.reduce(function(a, b) { return a + b; }, 0) / Math.max(totalChecked, 1);
+            
+            return Math.min(100, Math.max(0, (0.5 + avgMatchRate) * 50));
+        }
+        
+        function calculateDiversityScore(group) {
+            if (!group || group.length === 0) return 0;
+            
+            var digitCounts = new Array(10).fill(0);
+            var totalDigits = 0;
+            
+            for (var i = 0; i < group.length; i++) {
+                var numStr = String(group[i]).padStart(3, '0');
+                for (var j = 0; j < numStr.length; j++) {
+                    var digit = parseInt(numStr[j]);
+                    digitCounts[digit]++;
+                    totalDigits++;
+                }
+            }
+            
+            if (totalDigits === 0) return 0;
+            
+            var entropy = 0;
+            for (var d = 0; d < 10; d++) {
+                var p = digitCounts[d] / totalDigits;
+                if (p > 0) {
+                    entropy -= p * Math.log2(p);
+                }
+            }
+            
+            var maxEntropy = Math.log2(10);
+            
+            return Math.min(100, Math.max(0, (entropy / maxEntropy) * 100));
+        }
+        
+        function runEnsembleModels(group, chartIdx) {
+            var models = [
+                { name: '趋势模型', score: runTrendModel(group, chartIdx), weight: 0.3 },
+                { name: '模式匹配模型', score: runPatternModel(group), weight: 0.3 },
+                { name: '遗漏分析模型', score: runMissingModel(group), weight: 0.2 },
+                { name: '统计分析模型', score: runStatisticalModel(group), weight: 0.2 }
+            ];
+            
+            var totalWeight = 0;
+            var weightedScore = 0;
+            
+            for (var i = 0; i < models.length; i++) {
+                weightedScore += models[i].score * models[i].weight;
+                totalWeight += models[i].weight;
+            }
+            
+            return totalWeight > 0 ? weightedScore / totalWeight : 50;
+        }
+        
+        function runTrendModel(group, chartIdx) {
+            var trendScore = calculateTrendScore(chartIdx);
+            var recentTrend = calculateRecentTrend(group);
+            
+            return (trendScore * 0.6 + recentTrend * 0.4);
+        }
+        
+        function runPatternModel(group) {
+            var patternMatch = calculatePatternMatch(group);
+            var featureMatch = calculateFeatureMatch(group);
+            
+            return (patternMatch * 0.7 + featureMatch * 0.3);
+        }
+        
+        function runMissingModel(group) {
+            var missingScore = calculateMissingScore(group);
+            var hotColdScore = calculateHotColdScore(group);
+            
+            return (missingScore * 0.5 + hotColdScore * 0.5);
+        }
+        
+        function runStatisticalModel(group) {
+            var sumZoneScore = calculateSumZoneScore(group);
+            var diversityScore = calculateDiversityScore(group);
+            var oddEvenScore = calculateOddEvenBalance(group);
+            
+            return (sumZoneScore * 0.3 + diversityScore * 0.35 + oddEvenScore * 0.35);
+        }
+        
+        function calculateRecentTrend(group) {
+            if (!group || group.length === 0 || drawData.length < 5) return 50;
+            
+            var recent = drawData.slice(-5);
+            var hits = 0;
+            
+            for (var i = 0; i < recent.length; i++) {
+                if (checkHit(group, recent[i].num)) {
+                    hits++;
+                }
+            }
+            
+            return (hits / 5) * 100;
+        }
+        
+        function calculateFeatureMatch(group) {
+            if (!group || group.length === 0 || aiPatterns.length === 0) return 40;
+            
+            var groupFeatures = extractGroupFeatures(group);
+            if (!groupFeatures) return 40;
+            
+            var bestMatch = 0;
+            for (var i = 0; i < aiPatterns.length; i++) {
+                var pattern = aiPatterns[i];
+                if (!pattern || !pattern.features || pattern.version !== 8) continue;
+                
+                var sim = calculateWeightedDistance(groupFeatures, pattern.features);
+                if (sim > bestMatch) {
+                    bestMatch = sim;
+                }
+            }
+            
+            return bestMatch * 100;
+        }
+        
+        function calculateHotColdScore(group) {
+            if (!group || group.length === 0 || drawData.length < 10) return 50;
+            
+            var recent = drawData.slice(-10);
+            var digitFreq = new Array(10).fill(0);
+            
+            for (var i = 0; i < recent.length; i++) {
+                var numStr = (recent[i].number || recent[i].num || '').toString();
+                for (var j = 0; j < numStr.length; j++) {
+                    var digit = parseInt(numStr[j]);
+                    if (!isNaN(digit)) {
+                        digitFreq[digit]++;
+                    }
+                }
+            }
+            
+            var score = 0;
+            var count = 0;
+            
+            for (var i = 0; i < group.length; i++) {
+                var numStr = String(group[i]).padStart(3, '0');
+                for (var j = 0; j < numStr.length; j++) {
+                    var digit = parseInt(numStr[j]);
+                    var freq = digitFreq[digit] || 0;
+                    
+                    if (freq >= 3) {
+                        score += 10;
+                    } else if (freq >= 1) {
+                        score += 5;
+                    }
+                    count++;
+                }
+            }
+            
+            return count > 0 ? Math.min(100, score / count * 10) : 50;
+        }
+        
+        function calculateOddEvenBalance(group) {
+            if (!group || group.length === 0) return 50;
+            
+            var oddCount = 0;
+            var evenCount = 0;
+            
+            for (var i = 0; i < group.length; i++) {
+                var numStr = String(group[i]).padStart(3, '0');
+                for (var j = 0; j < numStr.length; j++) {
+                    var digit = parseInt(numStr[j]);
+                    if (digit % 2 === 1) {
+                        oddCount++;
+                    } else {
+                        evenCount++;
+                    }
+                }
+            }
+            
+            var total = oddCount + evenCount;
+            if (total === 0) return 50;
+            
+            var ratio = Math.min(oddCount, evenCount) / Math.max(oddCount, evenCount);
+            
+            return Math.min(100, ratio * 100);
         }
         
         function calculateStreakRate(group) {
@@ -6915,58 +8711,668 @@
             return (hits / recentDraws.length) * 100;
         }
         
-        function calculatePatternMatch(group) {
-            if (aiAnalysisHistory.length < 5) return 40;
+        function normalizeFeature(value, min, max) {
+            if (max === min) return 0.5;
+            return Math.max(0, Math.min(1, (value - min) / (max - min)));
+        }
+        
+        function extractGroupFeatures(group) {
+            if (!group || group.length === 0) return null;
             
-            var recentHistory = aiAnalysisHistory.slice(-10);
-            var totalScore = 0;
-            var count = 0;
+            var features = [];
+            var digitCounts = {};
+            for (var d = 0; d < 10; d++) digitCounts[d] = 0;
             
-            for (var i = 0; i < recentHistory.length; i++) {
-                var historyItem = recentHistory[i];
-                var historyRecs = historyItem && historyItem.recommendations ? historyItem.recommendations : [];
-                for (var j = 0; j < historyRecs.length; j++) {
-                    var historyRec = historyRecs[j];
-                    if (!historyRec || !historyRec.group) continue;
-                    var historyGroup = historyRec.group;
-                    var similarity = calculateGroupSimilarity(group, historyGroup);
-                    
-                    if (similarity > 0.3) {
-                        var weight = (i + 1) / recentHistory.length;
-                        var scoreBonus = historyRec.score > 60 ? 1.3 : (historyRec.score > 40 ? 1.1 : 1);
-                        var normalizedScore = similarity * 100;
-                        var penalty = Math.max(0, (group.length - 100) / 800);
-                        normalizedScore = normalizedScore * (1 - penalty * 0.3);
-                        totalScore += normalizedScore * weight * scoreBonus;
-                        count++;
-                    }
+            var positionCounts = [[], [], []];
+            for (var p = 0; p < 3; p++) {
+                positionCounts[p] = {};
+                for (var d = 0; d < 10; d++) positionCounts[p][d] = 0;
+            }
+            
+            var sumValues = [];
+            var oddCounts = [];
+            var bigCounts = [];
+            var spanValues = [];
+            var digitVariety = [];
+            
+            for (var i = 0; i < group.length; i++) {
+                var numStr = String(group[i]).padStart(3, '0');
+                var digits = numStr.split('').map(Number);
+                
+                for (var j = 0; j < digits.length; j++) {
+                    digitCounts[digits[j]]++;
+                    positionCounts[j][digits[j]]++;
+                }
+                
+                sumValues.push(digits.reduce(function(a, b) { return a + b; }, 0));
+                oddCounts.push(digits.filter(function(d) { return d % 2 === 1; }).length);
+                bigCounts.push(digits.filter(function(d) { return d >= 5; }).length);
+                
+                var uniqueDigits = new Set(digits).size;
+                digitVariety.push(uniqueDigits);
+                
+                spanValues.push(Math.max.apply(null, digits) - Math.min.apply(null, digits));
+            }
+            
+            var digitFreq = Object.values(digitCounts);
+            var maxFreq = Math.max.apply(Math, digitFreq);
+            var minFreq = Math.min.apply(Math, digitFreq);
+            
+            var hotCount = 0;
+            var coldCount = 0;
+            for (var d = 0; d < 10; d++) {
+                if (digitCounts[d] >= maxFreq * 0.8) hotCount++;
+                if (digitCounts[d] <= minFreq * 1.2) coldCount++;
+            }
+            
+            features.push(normalizeFeature(hotCount, 0, 10));
+            features.push(normalizeFeature(coldCount, 0, 10));
+            
+            for (var d = 0; d < 10; d++) {
+                features.push(normalizeFeature(digitCounts[d], 0, group.length));
+            }
+            
+            for (var p = 0; p < 3; p++) {
+                for (var d = 0; d < 10; d++) {
+                    features.push(normalizeFeature(positionCounts[p][d], 0, group.length));
                 }
             }
             
-            if (count === 0) return 30;
+            var sumMean = 0;
+            var sumStd = 0;
+            if (sumValues.length > 0) {
+                sumMean = sumValues.reduce(function(a, b) { return a + b; }, 0) / sumValues.length;
+                sumStd = Math.sqrt(sumValues.map(function(v) { return Math.pow(v - sumMean, 2); }).reduce(function(a, b) { return a + b; }, 0) / sumValues.length);
+                features.push(normalizeFeature(sumMean, 0, 27));
+                features.push(normalizeFeature(sumStd, 0, 10));
+            } else {
+                features.push(0.5);
+                features.push(0.5);
+            }
             
-            var avgScore = totalScore / count;
+            if (oddCounts.length > 0) {
+                var oddRatio = oddCounts.reduce(function(a, b) { return a + b; }, 0) / (oddCounts.length * 3);
+                features.push(normalizeFeature(oddRatio, 0, 1));
+            } else {
+                features.push(0.5);
+            }
             
-            if (aiPatterns.length > 0) {
-                var bestPatternMatch = 0;
-                for (var i = 0; i < aiPatterns.length; i++) {
-                    var pattern = aiPatterns[i];
-                    if (pattern.feature && pattern.feature.group) {
-                        var patternSim = calculateGroupSimilarity(group, pattern.feature.group);
-                        if (patternSim > bestPatternMatch && (pattern.score || 0) > 60) {
-                            bestPatternMatch = patternSim;
+            if (bigCounts.length > 0) {
+                var bigRatio = bigCounts.reduce(function(a, b) { return a + b; }, 0) / (bigCounts.length * 3);
+                features.push(normalizeFeature(bigRatio, 0, 1));
+            } else {
+                features.push(0.5);
+            }
+            
+            if (digitVariety.length > 0) {
+                var varietyMean = digitVariety.reduce(function(a, b) { return a + b; }, 0) / digitVariety.length;
+                features.push(normalizeFeature(varietyMean, 1, 3));
+            } else {
+                features.push(0.5);
+            }
+            
+            if (spanValues.length > 0) {
+                var spanMean = spanValues.reduce(function(a, b) { return a + b; }, 0) / spanValues.length;
+                var spanStd = Math.sqrt(spanValues.map(function(v) { return Math.pow(v - spanMean, 2); }).reduce(function(a, b) { return a + b; }, 0) / spanValues.length);
+                features.push(normalizeFeature(spanMean, 0, 9));
+                features.push(normalizeFeature(spanStd, 0, 5));
+            } else {
+                features.push(0.5);
+                features.push(0.5);
+            }
+            
+            var repeatDigitCounts = {};
+            for (var i = 0; i < group.length; i++) {
+                var numStr = String(group[i]).padStart(3, '0');
+                var digits = numStr.split('').map(Number);
+                var hasRepeat = new Set(digits).size < 3;
+                if (hasRepeat) {
+                    var repeatType = new Set(digits).size;
+                    repeatDigitCounts[repeatType] = (repeatDigitCounts[repeatType] || 0) + 1;
+                }
+            }
+            features.push(normalizeFeature(repeatDigitCounts[2] || 0, 0, group.length));
+            features.push(normalizeFeature(repeatDigitCounts[1] || 0, 0, group.length));
+            
+            var sequentialCounts = {};
+            for (var i = 0; i < group.length; i++) {
+                var numStr = String(group[i]).padStart(3, '0');
+                var digits = numStr.split('').map(Number).sort(function(a, b) { return a - b; });
+                var isSequential = (digits[1] === digits[0] + 1) && (digits[2] === digits[1] + 1);
+                if (isSequential) sequentialCounts.total = (sequentialCounts.total || 0) + 1;
+            }
+            features.push(normalizeFeature(sequentialCounts.total || 0, 0, group.length));
+            
+            var boundaryNums = [];
+            for (var i = 0; i < group.length; i++) {
+                var numVal = parseInt(String(group[i]).padStart(3, '0'));
+                if (numVal < 100) boundaryNums.push(numVal);
+                if (numVal > 900) boundaryNums.push(numVal);
+            }
+            features.push(normalizeFeature(boundaryNums.length, 0, group.length));
+            
+            var numValues = [];
+            for (var i = 0; i < group.length; i++) {
+                numValues.push(parseInt(String(group[i]).padStart(3, '0')));
+            }
+            if (numValues.length > 0) {
+                var numMean = numValues.reduce(function(a, b) { return a + b; }, 0) / numValues.length;
+                var numStd = Math.sqrt(numValues.map(function(v) { return Math.pow(v - numMean, 2); }).reduce(function(a, b) { return a + b; }, 0) / numValues.length);
+                features.push(normalizeFeature(numMean, 0, 999));
+                features.push(normalizeFeature(numStd, 0, 300));
+                
+                var numMedian = numValues.sort(function(a, b) { return a - b; })[Math.floor(numValues.length / 2)];
+                features.push(normalizeFeature(numMedian, 0, 999));
+                
+                var numRange = Math.max.apply(null, numValues) - Math.min.apply(null, numValues);
+                features.push(normalizeFeature(numRange, 0, 999));
+                
+                var numSum = numValues.reduce(function(a, b) { return a + b; }, 0);
+                features.push(normalizeFeature(numSum, 0, group.length * 999));
+            } else {
+                features.push(0.5);
+                features.push(0.5);
+                features.push(0.5);
+                features.push(0.5);
+                features.push(0.5);
+            }
+            
+            features.push(normalizeFeature(group.length, 0, 1000));
+            
+            if (drawData && drawData.length > 0) {
+                var recent = drawData.slice(-20);
+                var back3Values = [];
+                for (var i = 0; i < recent.length; i++) {
+                    back3Values.push(parseInt(String(recent[i].back3 || '0').padStart(3, '0')));
+                }
+                
+                var consecutive = calculateConsecutiveCounts(back3Values);
+                features.push(normalizeFeature(consecutive.maxRed, 0, 20));
+                features.push(normalizeFeature(consecutive.maxGreen, 0, 20));
+                features.push(normalizeFeature(consecutive.avgRed, 0, 10));
+                features.push(normalizeFeature(consecutive.avgGreen, 0, 10));
+                
+                var oscillation = calculateOscillationCount(back3Values, 5);
+                features.push(normalizeFeature(oscillation, 0, recent.length));
+                
+                if (back3Values.length > 0) {
+                    features.push(normalizeFeature(Math.max.apply(Math, back3Values), 0, 999));
+                    features.push(normalizeFeature(Math.min.apply(Math, back3Values), 0, 999));
+                } else {
+                    features.push(0.5);
+                    features.push(0.5);
+                }
+                
+                var breakout = calculateBreakoutCount(back3Values, 10);
+                features.push(normalizeFeature(breakout, 0, recent.length));
+                
+                var slope = calculateSlope(back3Values, 10);
+                features.push(normalizeFeature(slope, -50, 50));
+                
+                var volatility = calculateVolatility(back3Values);
+                features.push(normalizeFeature(volatility, 0, 500));
+                
+                var atr = calculateATR(back3Values, 14);
+                features.push(normalizeFeature(atr, 0, 100));
+                
+                var rsiArray = calculateRSI(back3Values, 14);
+                var rsi = rsiArray && rsiArray.length > 0 ? rsiArray[rsiArray.length - 1] : 50;
+                features.push(normalizeFeature(rsi, 0, 100));
+                
+                var macdResult = calculateMACD(back3Values, 12, 26, 9);
+                var macd = macdResult && macdResult.macd && macdResult.macd.length > 0 ? macdResult.macd[macdResult.macd.length - 1] : 0;
+                features.push(normalizeFeature(macd, -50, 50));
+                
+                var macdSignal = macdResult && macdResult.signal && macdResult.signal.length > 0 ? macdResult.signal[macdResult.signal.length - 1] : 0;
+                features.push(normalizeFeature(macdSignal, -50, 50));
+                
+                var ema12 = calculateEMA(back3Values, 12);
+                features.push(normalizeFeature(ema12.length > 0 ? ema12[ema12.length - 1] : 0, 0, 999));
+                
+                var ema26 = calculateEMA(back3Values, 26);
+                features.push(normalizeFeature(ema26.length > 0 ? ema26[ema26.length - 1] : 0, 0, 999));
+                
+                var missingValues = calculateMissingValues(drawData);
+                var avgMissing = missingValues.reduce(function(a, b) { return a + b; }, 0) / 10;
+                features.push(normalizeFeature(avgMissing, 0, 50));
+                
+                for (var m = 0; m < 10; m++) {
+                    features.push(normalizeFeature(missingValues[m] || 0, 0, 50));
+                }
+                
+                var zoneCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                for (var i = 0; i < group.length; i++) {
+                    var numVal = parseInt(String(group[i]).padStart(3, '0'));
+                    var zone = Math.floor(numVal / 100);
+                    if (zone >= 0 && zone < 10) zoneCounts[zone]++;
+                }
+                for (var z = 0; z < 10; z++) {
+                    features.push(normalizeFeature(zoneCounts[z], 0, group.length));
+                }
+                
+                var zoneEntropy = 0;
+                for (var z = 0; z < 10; z++) {
+                    var p = zoneCounts[z] / group.length;
+                    if (p > 0) zoneEntropy -= p * Math.log(p);
+                }
+                features.push(normalizeFeature(zoneEntropy, 0, Math.log(10)));
+                
+                var digitEntropy = 0;
+                for (var d = 0; d < 10; d++) {
+                    var p = digitCounts[d] / (group.length * 3);
+                    if (p > 0) digitEntropy -= p * Math.log(p);
+                }
+                features.push(normalizeFeature(digitEntropy, 0, Math.log(10)));
+                
+                var positionEntropies = [];
+                for (var p = 0; p < 3; p++) {
+                    var posEntropy = 0;
+                    var total = 0;
+                    for (var d = 0; d < 10; d++) total += positionCounts[p][d];
+                    for (var d = 0; d < 10; d++) {
+                        var prob = total > 0 ? positionCounts[p][d] / total : 0;
+                        if (prob > 0) posEntropy -= prob * Math.log(prob);
+                    }
+                    positionEntropies.push(posEntropy);
+                    features.push(normalizeFeature(posEntropy, 0, Math.log(10)));
+                }
+                
+                var comboCounts = {};
+                for (var i = 0; i < group.length; i++) {
+                    var numStr = String(group[i]).padStart(3, '0');
+                    var combo1 = numStr[0] + numStr[1];
+                    var combo2 = numStr[1] + numStr[2];
+                    var combo3 = numStr[0] + numStr[2];
+                    comboCounts[combo1] = (comboCounts[combo1] || 0) + 1;
+                    comboCounts[combo2] = (comboCounts[combo2] || 0) + 1;
+                    comboCounts[combo3] = (comboCounts[combo3] || 0) + 1;
+                }
+                var topComboCount = 0;
+                for (var key in comboCounts) {
+                    if (comboCounts[key] > topComboCount) topComboCount = comboCounts[key];
+                }
+                features.push(normalizeFeature(topComboCount, 0, group.length));
+                features.push(normalizeFeature(Object.keys(comboCounts).length, 0, 300));
+                
+                var shapeCounts = {
+                    'asc': 0, 'desc': 0, 'peak': 0, 'valley': 0, 'flat': 0, 'mixed': 0
+                };
+                for (var i = 0; i < group.length; i++) {
+                    var numStr = String(group[i]).padStart(3, '0');
+                    var d1 = parseInt(numStr[0]), d2 = parseInt(numStr[1]), d3 = parseInt(numStr[2]);
+                    if (d1 < d2 && d2 < d3) shapeCounts['asc']++;
+                    else if (d1 > d2 && d2 > d3) shapeCounts['desc']++;
+                    else if (d1 < d2 && d2 > d3) shapeCounts['peak']++;
+                    else if (d1 > d2 && d2 < d3) shapeCounts['valley']++;
+                    else if (d1 === d2 && d2 === d3) shapeCounts['flat']++;
+                    else shapeCounts['mixed']++;
+                }
+                for (var shape in shapeCounts) {
+                    features.push(normalizeFeature(shapeCounts[shape], 0, group.length));
+                }
+                
+                var symmetryCounts = {
+                    'palindrome': 0, 'mirror': 0, 'reverse': 0
+                };
+                for (var i = 0; i < group.length; i++) {
+                    var numStr = String(group[i]).padStart(3, '0');
+                    if (numStr[0] === numStr[2]) symmetryCounts['palindrome']++;
+                    if (numStr[0] === (9 - parseInt(numStr[2])).toString()) symmetryCounts['mirror']++;
+                    if (numStr === numStr.split('').reverse().join('')) symmetryCounts['reverse']++;
+                }
+                for (var sym in symmetryCounts) {
+                    features.push(normalizeFeature(symmetryCounts[sym], 0, group.length));
+                }
+                
+                var tripletCounts = {};
+                for (var i = 0; i < group.length; i++) {
+                    var numStr = String(group[i]).padStart(3, '0');
+                    var sorted = numStr.split('').sort().join('');
+                    tripletCounts[sorted] = (tripletCounts[sorted] || 0) + 1;
+                }
+                features.push(normalizeFeature(Object.keys(tripletCounts).length, 0, group.length));
+                
+                var digitCorrelation = 0;
+                for (var d = 0; d < 10; d++) {
+                    for (var e = d + 1; e < 10; e++) {
+                        var countD = digitCounts[d];
+                        var countE = digitCounts[e];
+                        var coOccur = 0;
+                        for (var i = 0; i < group.length; i++) {
+                            var numStr = String(group[i]).padStart(3, '0');
+                            if (numStr.indexOf(d.toString()) !== -1 && numStr.indexOf(e.toString()) !== -1) {
+                                coOccur++;
+                            }
+                        }
+                        var expected = (countD / (group.length * 3)) * (countE / (group.length * 3)) * group.length;
+                        if (expected > 0) {
+                            digitCorrelation += Math.abs(coOccur - expected);
                         }
                     }
                 }
-                if (bestPatternMatch > 0) {
-                    avgScore = avgScore * 0.7 + bestPatternMatch * 30;
+                features.push(normalizeFeature(digitCorrelation, 0, group.length * 45));
+                
+                var coOccurrenceMatrix = [];
+                for (var d1 = 0; d1 < 10; d1++) {
+                    for (var d2 = d1 + 1; d2 < 10; d2++) {
+                        var count = 0;
+                        for (var i = 0; i < group.length; i++) {
+                            var numStr = String(group[i]).padStart(3, '0');
+                            if (numStr.indexOf(d1.toString()) !== -1 && numStr.indexOf(d2.toString()) !== -1) {
+                                count++;
+                            }
+                        }
+                        coOccurrenceMatrix.push(count);
+                    }
+                }
+                var maxCoOccur = Math.max.apply(Math, coOccurrenceMatrix);
+                for (var c = 0; c < coOccurrenceMatrix.length; c++) {
+                    features.push(normalizeFeature(coOccurrenceMatrix[c], 0, maxCoOccur || 1));
+                }
+                
+                var posComboCounts = { 'h': {}, 't': {}, 'u': {} };
+                for (var i = 0; i < group.length; i++) {
+                    var numStr = String(group[i]).padStart(3, '0');
+                    var ht = numStr[0] + numStr[1];
+                    var tu = numStr[1] + numStr[2];
+                    posComboCounts['h'][ht] = (posComboCounts['h'][ht] || 0) + 1;
+                    posComboCounts['t'][tu] = (posComboCounts['t'][tu] || 0) + 1;
+                }
+                var htCounts = Object.values(posComboCounts['h']).sort(function(a, b) { return b - a; });
+                var tuCounts = Object.values(posComboCounts['t']).sort(function(a, b) { return b - a; });
+                for (var c = 0; c < 10; c++) {
+                    features.push(normalizeFeature(htCounts[c] || 0, 0, group.length));
+                    features.push(normalizeFeature(tuCounts[c] || 0, 0, group.length));
+                }
+                
+                var modCounts = [];
+                for (var m = 3; m <= 9; m++) {
+                    var counts = {};
+                    for (var r = 0; r < m; r++) counts[r] = 0;
+                    for (var i = 0; i < group.length; i++) {
+                        var numVal = parseInt(String(group[i]).padStart(3, '0'));
+                        counts[numVal % m]++;
+                    }
+                    var maxMod = Math.max.apply(Math, Object.values(counts));
+                    for (var r = 0; r < m; r++) {
+                        features.push(normalizeFeature(counts[r], 0, maxMod || 1));
+                    }
+                }
+                
+                var rarePatterns = {
+                    'allSame': 0, 'allDiff': 0, 'twoSame': 0,
+                    'consecutive': 0, 'mirror': 0, 'palindrome': 0,
+                    'ascending': 0, 'descending': 0,
+                    'zeroIncluded': 0, 'nineIncluded': 0,
+                    'allBig': 0, 'allSmall': 0,
+                    'allOdd': 0, 'allEven': 0
+                };
+                for (var i = 0; i < group.length; i++) {
+                    var numStr = String(group[i]).padStart(3, '0');
+                    var d1 = parseInt(numStr[0]), d2 = parseInt(numStr[1]), d3 = parseInt(numStr[2]);
+                    var unique = new Set([d1, d2, d3]).size;
+                    
+                    if (unique === 1) rarePatterns['allSame']++;
+                    if (unique === 3) rarePatterns['allDiff']++;
+                    if (unique === 2) rarePatterns['twoSame']++;
+                    if ((d2 === d1 + 1 && d3 === d2 + 1) || (d2 === d1 - 1 && d3 === d2 - 1)) rarePatterns['consecutive']++;
+                    if (d1 === 9 - d3) rarePatterns['mirror']++;
+                    if (d1 === d3) rarePatterns['palindrome']++;
+                    if (d1 < d2 && d2 < d3) rarePatterns['ascending']++;
+                    if (d1 > d2 && d2 > d3) rarePatterns['descending']++;
+                    if (d1 === 0 || d2 === 0 || d3 === 0) rarePatterns['zeroIncluded']++;
+                    if (d1 === 9 || d2 === 9 || d3 === 9) rarePatterns['nineIncluded']++;
+                    if (d1 >= 5 && d2 >= 5 && d3 >= 5) rarePatterns['allBig']++;
+                    if (d1 < 5 && d2 < 5 && d3 < 5) rarePatterns['allSmall']++;
+                    if (d1 % 2 === 1 && d2 % 2 === 1 && d3 % 2 === 1) rarePatterns['allOdd']++;
+                    if (d1 % 2 === 0 && d2 % 2 === 0 && d3 % 2 === 0) rarePatterns['allEven']++;
+                }
+                for (var key in rarePatterns) {
+                    features.push(normalizeFeature(rarePatterns[key], 0, group.length));
+                }
+                
+                var sortedNums = [];
+                for (var i = 0; i < group.length; i++) {
+                    sortedNums.push(parseInt(String(group[i]).padStart(3, '0')));
+                }
+                sortedNums.sort(function(a, b) { return a - b; });
+                
+                var gaps = [];
+                for (var i = 1; i < sortedNums.length; i++) {
+                    gaps.push(sortedNums[i] - sortedNums[i - 1]);
+                }
+                if (gaps.length > 0) {
+                    var gapMean = gaps.reduce(function(a, b) { return a + b; }, 0) / gaps.length;
+                    var gapStd = Math.sqrt(gaps.map(function(v) { return Math.pow(v - gapMean, 2); }).reduce(function(a, b) { return a + b; }, 0) / gaps.length);
+                    var gapMax = Math.max.apply(Math, gaps);
+                    var gapMin = Math.min.apply(Math, gaps);
+                    features.push(normalizeFeature(gapMean, 0, 100));
+                    features.push(normalizeFeature(gapStd, 0, 50));
+                    features.push(normalizeFeature(gapMax, 0, 999));
+                    features.push(normalizeFeature(gapMin, 0, 100));
+                } else {
+                    features.push(0.5); features.push(0.5); features.push(0.5); features.push(0.5);
+                }
+                
+                var clusterCounts = [0, 0, 0, 0, 0];
+                for (var i = 0; i < sortedNums.length; i++) {
+                    var zone = Math.floor(sortedNums[i] / 200);
+                    if (zone >= 0 && zone < 5) clusterCounts[zone]++;
+                }
+                for (var z = 0; z < 5; z++) {
+                    features.push(normalizeFeature(clusterCounts[z], 0, group.length));
+                }
+                
+                var smallZoneCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                for (var i = 0; i < sortedNums.length; i++) {
+                    var zone = Math.floor(sortedNums[i] / 100);
+                    if (zone >= 0 && zone < 10) smallZoneCounts[zone]++;
+                }
+                for (var z = 0; z < 10; z++) {
+                    features.push(normalizeFeature(smallZoneCounts[z], 0, group.length));
+                }
+                
+                var densityFeatures = [];
+                for (var z = 0; z < 10; z++) {
+                    var start = z * 100;
+                    var end = (z + 1) * 100;
+                    var zoneNums = sortedNums.filter(function(n) { return n >= start && n < end; });
+                    if (zoneNums.length > 1) {
+                        var zoneDensity = zoneNums.length / (end - start);
+                        var avgGap = 0;
+                        for (var i = 1; i < zoneNums.length; i++) {
+                            avgGap += zoneNums[i] - zoneNums[i - 1];
+                        }
+                        avgGap /= (zoneNums.length - 1);
+                        densityFeatures.push(zoneDensity);
+                        densityFeatures.push(avgGap);
+                    } else {
+                        densityFeatures.push(0);
+                        densityFeatures.push(100);
+                    }
+                }
+                for (var d = 0; d < densityFeatures.length; d++) {
+                    features.push(normalizeFeature(densityFeatures[d], 0, 1));
+                }
+                
+                var digitRank = [];
+                for (var d = 0; d < 10; d++) {
+                    digitRank.push({ digit: d, count: digitCounts[d] });
+                }
+                digitRank.sort(function(a, b) { return b.count - a.count; });
+                for (var r = 0; r < 10; r++) {
+                    features.push(normalizeFeature(digitRank[r].digit, 0, 9));
+                    features.push(normalizeFeature(digitRank[r].count, 0, group.length * 3));
+                }
+                
+                var pairCorrelations = [];
+                for (var d1 = 0; d1 < 10; d1++) {
+                    for (var d2 = 0; d2 < 10; d2++) {
+                        if (d1 >= d2) continue;
+                        var coOccur = 0;
+                        var d1Count = 0;
+                        var d2Count = 0;
+                        for (var i = 0; i < group.length; i++) {
+                            var numStr = String(group[i]).padStart(3, '0');
+                            var hasD1 = numStr.indexOf(d1.toString()) !== -1;
+                            var hasD2 = numStr.indexOf(d2.toString()) !== -1;
+                            if (hasD1) d1Count++;
+                            if (hasD2) d2Count++;
+                            if (hasD1 && hasD2) coOccur++;
+                        }
+                        var expected = (d1Count * d2Count) / group.length;
+                        var correlation = expected > 0 ? coOccur / expected : 0;
+                        pairCorrelations.push(correlation);
+                    }
+                }
+                var maxCorr = Math.max.apply(Math, pairCorrelations) || 1;
+                var minCorr = Math.min.apply(Math, pairCorrelations) || 0;
+                for (var c = 0; c < pairCorrelations.length; c++) {
+                    features.push(normalizeFeature(pairCorrelations[c], minCorr, maxCorr));
+                }
+                
+                var posTransitionCounts = {};
+                for (var i = 0; i < group.length; i++) {
+                    var numStr = String(group[i]).padStart(3, '0');
+                    var trans1 = numStr[0] + '->' + numStr[1];
+                    var trans2 = numStr[1] + '->' + numStr[2];
+                    posTransitionCounts[trans1] = (posTransitionCounts[trans1] || 0) + 1;
+                    posTransitionCounts[trans2] = (posTransitionCounts[trans2] || 0) + 1;
+                }
+                var topTransitions = Object.keys(posTransitionCounts).sort(function(a, b) {
+                    return posTransitionCounts[b] - posTransitionCounts[a];
+                }).slice(0, 15);
+                for (var t = 0; t < 15; t++) {
+                    features.push(normalizeFeature(posTransitionCounts[topTransitions[t]] || 0, 0, group.length));
+                }
+                
+                var distributionSkewness = 0;
+                var distributionKurtosis = 0;
+                if (sortedNums.length > 0) {
+                    var mean = sortedNums.reduce(function(a, b) { return a + b; }, 0) / sortedNums.length;
+                    var variance = sortedNums.map(function(v) { return Math.pow(v - mean, 2); }).reduce(function(a, b) { return a + b; }, 0) / sortedNums.length;
+                    var std = Math.sqrt(variance);
+                    if (std > 0) {
+                        distributionSkewness = sortedNums.map(function(v) { return Math.pow((v - mean) / std, 3); }).reduce(function(a, b) { return a + b; }, 0) / sortedNums.length;
+                        distributionKurtosis = sortedNums.map(function(v) { return Math.pow((v - mean) / std, 4); }).reduce(function(a, b) { return a + b; }, 0) / sortedNums.length - 3;
+                    }
+                }
+                features.push(normalizeFeature(distributionSkewness, -5, 5));
+                features.push(normalizeFeature(distributionKurtosis, -5, 5));
+                
+                var boundaryFeatures = [0, 0, 0, 0];
+                for (var i = 0; i < group.length; i++) {
+                    var numVal = parseInt(String(group[i]).padStart(3, '0'));
+                    if (numVal < 50) boundaryFeatures[0]++;
+                    if (numVal >= 950) boundaryFeatures[1]++;
+                    if (numVal >= 100 && numVal < 150) boundaryFeatures[2]++;
+                    if (numVal >= 850 && numVal < 900) boundaryFeatures[3]++;
+                }
+                for (var b = 0; b < boundaryFeatures.length; b++) {
+                    features.push(normalizeFeature(boundaryFeatures[b], 0, group.length));
+                }
+            } else {
+                for (var f = 0; f < 250; f++) {
+                    features.push(0.5);
                 }
             }
             
-            return Math.min(100, Math.max(0, avgScore));
+            return features;
         }
         
-        function calculateGroupSimilarity(group1, group2) {
+        function calculatePatternMatch(group) {
+            var patternMatchScore = 0;
+            var historyScore = 0;
+            
+            if (aiAnalysisHistory.length >= 5) {
+                var recentHistory = aiAnalysisHistory.slice(-15);
+                var totalScore = 0;
+                var count = 0;
+                
+                for (var i = 0; i < recentHistory.length; i++) {
+                    var historyItem = recentHistory[i];
+                    var historyRecs = historyItem && historyItem.recommendations ? historyItem.recommendations : [];
+                    for (var j = 0; j < historyRecs.length; j++) {
+                        var historyRec = historyRecs[j];
+                        if (!historyRec || !historyRec.group) continue;
+                        var historyGroup = historyRec.group;
+                        
+                        var jaccardSim = calculateJaccardSimilarity(group, historyGroup);
+                        var cosineSim = calculateCosineSimilarity(group, historyGroup);
+                        var weightedSim = (jaccardSim * 0.6 + cosineSim * 0.4);
+                        
+                        if (weightedSim > 0.25) {
+                            var weight = Math.pow(0.9, i);
+                            var scoreBonus = historyRec.score > 70 ? 1.4 : (historyRec.score > 50 ? 1.2 : 1);
+                            var hitBonus = historyRec.hit ? 1.3 : 1;
+                            var normalizedScore = weightedSim * 100;
+                            var penalty = Math.max(0, (group.length - 80) / 600);
+                            normalizedScore = normalizedScore * (1 - penalty * 0.35);
+                            totalScore += normalizedScore * weight * scoreBonus * hitBonus;
+                            count++;
+                        }
+                    }
+                }
+                
+                historyScore = count > 0 ? totalScore / count : 30;
+            } else {
+                historyScore = 35;
+            }
+            
+            if (aiPatterns.length > 0) {
+                var groupFeatures = extractGroupFeatures(group);
+                if (!groupFeatures) {
+                    patternMatchScore = 20;
+                } else {
+                    var bestPatternMatch = 0;
+                    var patternWeightSum = 0;
+                    var positivePatterns = aiPatterns.filter(function(p) { return p && p.patternType === 'positive' && p.version === 8; });
+                    
+                    console.log('[AI Pattern] Group features length:', groupFeatures.length);
+                    console.log('[AI Pattern] Positive patterns available:', positivePatterns.length);
+                    
+                    for (var i = 0; i < aiPatterns.length; i++) {
+                        var pattern = aiPatterns[i];
+                        if (!pattern || !pattern.features || pattern.patternType === 'negative' || pattern.version !== 8) continue;
+                        
+                        var patternSim = calculateWeightedDistance(groupFeatures, pattern.features);
+                        var confidence = (pattern.hit ? 0.9 : 0.3);
+                        
+                        if (patternSim > bestPatternMatch) {
+                            bestPatternMatch = patternSim;
+                        }
+                        patternWeightSum += patternSim * confidence;
+                    }
+                    
+                    console.log('[AI Pattern] Best match:', bestPatternMatch.toFixed(4), 'weightSum:', patternWeightSum.toFixed(4));
+                    
+                    if (bestPatternMatch > 0) {
+                        var patternContribution = bestPatternMatch * 50 + (patternWeightSum / Math.max(1, positivePatterns.length)) * 30;
+                        patternMatchScore = Math.min(80, patternContribution);
+                    } else if (positivePatterns.length > 0) {
+                        patternMatchScore = 35;
+                    } else {
+                        patternMatchScore = 20;
+                    }
+                    
+                    console.log('[AI Pattern] Final score:', patternMatchScore.toFixed(1));
+                }
+            } else {
+                patternMatchScore = 20;
+            }
+            
+            return Math.min(100, Math.max(0, historyScore * 0.4 + patternMatchScore));
+        }
+        
+        function calculateAntiPatternMatch(group) {
+            return 0;
+        }
+        
+        function filterByAntiPatterns(group) {
+            return false;
+        }
+        
+        function calculateJaccardSimilarity(group1, group2) {
             if (!group1 || !group2 || group1.length === 0 || group2.length === 0) return 0;
             
             var set1 = {};
@@ -6974,14 +9380,331 @@
                 set1[group1[i]] = true;
             }
             
-            var intersection = 0;
+            var set2 = {};
             for (var i = 0; i < group2.length; i++) {
-                if (set1[group2[i]]) intersection++;
+                set2[group2[i]] = true;
             }
             
-            var union = group1.length + group2.length - intersection;
+            var intersection = 0;
+            var union = group1.length;
+            
+            for (var key in set2) {
+                if (set1[key]) {
+                    intersection++;
+                } else {
+                    union++;
+                }
+            }
             
             return union > 0 ? intersection / union : 0;
+        }
+        
+        function calculateCosineSimilarity(group1, group2) {
+            if (!group1 || !group2 || group1.length === 0 || group2.length === 0) return 0;
+            
+            var set1 = {};
+            for (var i = 0; i < group1.length; i++) {
+                set1[group1[i]] = 1;
+            }
+            
+            var set2 = {};
+            for (var i = 0; i < group2.length; i++) {
+                set2[group2[i]] = 1;
+            }
+            
+            var dotProduct = 0;
+            var magnitude1 = Math.sqrt(group1.length);
+            var magnitude2 = Math.sqrt(group2.length);
+            
+            for (var key in set1) {
+                if (set2[key]) {
+                    dotProduct++;
+                }
+            }
+            
+            return (magnitude1 * magnitude2) > 0 ? dotProduct / (magnitude1 * magnitude2) : 0;
+        }
+        
+        function calculateWeightedDistance(features1, features2) {
+            if (!features1 || !features2 || features1.length === 0 || features2.length === 0) return 0;
+            
+            var minLength = Math.min(features1.length, features2.length);
+            if (minLength === 0) return 0;
+            
+            var weights = [];
+            for (var i = 0; i < minLength; i++) {
+                if (i < 2) {
+                    weights.push(0.9);
+                } else if (i < 12) {
+                    weights.push(0.6);
+                } else if (i < 42) {
+                    weights.push(0.4);
+                } else if (i < 50) {
+                    weights.push(0.3);
+                } else if (i < 54) {
+                    weights.push(0.3);
+                } else if (i < 58) {
+                    weights.push(0.8);
+                } else if (i < 66) {
+                    weights.push(0.9);
+                } else if (i < 85) {
+                    weights.push(0.6);
+                } else if (i < 95) {
+                    weights.push(0.7);
+                } else if (i < 97) {
+                    weights.push(0.95);
+                } else if (i < 98) {
+                    weights.push(0.95);
+                } else if (i < 101) {
+                    weights.push(0.9);
+                } else if (i < 103) {
+                    weights.push(0.85);
+                } else if (i < 109) {
+                    weights.push(0.95);
+                } else if (i < 112) {
+                    weights.push(0.85);
+                } else if (i < 113) {
+                    weights.push(0.9);
+                } else if (i < 114) {
+                    weights.push(0.8);
+                } else if (i < 159) {
+                    weights.push(0.95);
+                } else if (i < 179) {
+                    weights.push(0.9);
+                } else if (i < 225) {
+                    weights.push(0.85);
+                } else if (i < 239) {
+                    weights.push(0.95);
+                } else if (i < 243) {
+                    weights.push(0.9);
+                } else if (i < 248) {
+                    weights.push(0.85);
+                } else {
+                    weights.push(0.5);
+                }
+            }
+            
+            var totalWeight = 0;
+            var weightedDiff = 0;
+            
+            for (var i = 0; i < minLength; i++) {
+                var w = weights[i] || 0.5;
+                var diff = Math.abs(features1[i] - features2[i]);
+                
+                weightedDiff += diff * w;
+                totalWeight += w;
+            }
+            
+            var avgDiff = totalWeight > 0 ? weightedDiff / totalWeight : 1;
+            
+            return Math.max(0, 1 - avgDiff);
+        }
+        
+        function extractCurrentFeatures() {
+            if (drawData.length < 20) return null;
+            
+            var recent = drawData.slice(-20);
+            var featureVector = [];
+            
+            var back3Values = [];
+            var mid3Values = [];
+            var front3Values = [];
+            var sumValues = [];
+            
+            for (var i = 0; i < recent.length; i++) {
+                var p = recent[i];
+                back3Values.push(parseInt(p.back3 || '0'));
+                mid3Values.push(parseInt(p.mid3 || '0'));
+                front3Values.push(parseInt(p.front3 || '0'));
+                
+                var numStr = p.number || p.num || '';
+                if (numStr.length >= 5) {
+                    var digits = numStr.split('').map(Number);
+                    sumValues.push(digits.reduce(function(a, b) { return a + b; }, 0));
+                }
+            }
+            
+            var length = recent.length;
+            featureVector.push(normalizeFeature(length, 0, 100));
+            
+            var consecutive = calculateConsecutiveCounts(back3Values);
+            featureVector.push(normalizeFeature(consecutive.maxRed, 0, 20));
+            featureVector.push(normalizeFeature(consecutive.maxGreen, 0, 20));
+            featureVector.push(normalizeFeature(consecutive.avgRed, 0, 10));
+            featureVector.push(normalizeFeature(consecutive.avgGreen, 0, 10));
+            
+            var oscillation = calculateOscillationCount(back3Values, 5);
+            featureVector.push(normalizeFeature(oscillation, 0, recent.length));
+            
+            var maxVal = Math.max.apply(Math, back3Values);
+            var minVal = Math.min.apply(Math, back3Values);
+            featureVector.push(normalizeFeature(maxVal, 0, 999));
+            featureVector.push(normalizeFeature(minVal, 0, 999));
+            
+            var breakout = calculateBreakoutCount(back3Values, 10);
+            featureVector.push(normalizeFeature(breakout, 0, recent.length));
+            
+            var slope = calculateSlope(back3Values, 10);
+            featureVector.push(normalizeFeature(slope, -50, 50));
+            
+            var period = recent.length;
+            featureVector.push(normalizeFeature(period, 0, 100));
+            
+            var volatility = calculateVolatility(back3Values);
+            featureVector.push(normalizeFeature(volatility, 0, 500));
+            
+            var atr = calculateATR(back3Values, 14);
+            featureVector.push(normalizeFeature(atr, 0, 100));
+            
+            var rsiArray = calculateRSI(back3Values, 14);
+            var rsi = rsiArray && rsiArray.length > 0 ? rsiArray[rsiArray.length - 1] : 50;
+            featureVector.push(normalizeFeature(rsi, 0, 100));
+            
+            var macdResult = calculateMACD(back3Values, 12, 26, 9);
+            var macd = macdResult && macdResult.macd && macdResult.macd.length > 0 ? macdResult.macd[macdResult.macd.length - 1] : 0;
+            featureVector.push(normalizeFeature(macd, -50, 50));
+            
+            var ema12 = calculateEMA(back3Values, 12);
+            var emaValue = ema12.length > 0 ? ema12[ema12.length - 1] : 0;
+            featureVector.push(normalizeFeature(emaValue, 0, 999));
+            
+            var ema26 = calculateEMA(back3Values, 26);
+            var ema26Value = ema26.length > 0 ? ema26[ema26.length - 1] : 0;
+            featureVector.push(normalizeFeature(ema26Value, 0, 999));
+            
+            var macdSignal = macdResult && macdResult.signal && macdResult.signal.length > 0 ? macdResult.signal[macdResult.signal.length - 1] : 0;
+            featureVector.push(normalizeFeature(macdSignal, -50, 50));
+            
+            for (var i = 1; i < recent.length; i++) {
+                var curr = recent[i];
+                var prev = recent[i-1];
+                
+                var currBack3 = parseInt(curr.back3 || '0');
+                var prevBack3 = parseInt(prev.back3 || '0');
+                var currMid3 = parseInt(curr.mid3 || '0');
+                var prevMid3 = parseInt(prev.mid3 || '0');
+                var currFront3 = parseInt(curr.front3 || '0');
+                var prevFront3 = parseInt(prev.front3 || '0');
+                
+                featureVector.push(normalizeFeature(currBack3 - prevBack3, -999, 999));
+                featureVector.push(normalizeFeature(currMid3 - prevMid3, -999, 999));
+                featureVector.push(normalizeFeature(currFront3 - prevFront3, -999, 999));
+            }
+            
+            if (sumValues.length > 0) {
+                var sumMean = sumValues.reduce(function(a, b) { return a + b; }, 0) / sumValues.length;
+                var sumStd = Math.sqrt(sumValues.map(function(v) { return Math.pow(v - sumMean, 2); }).reduce(function(a, b) { return a + b; }, 0) / sumValues.length);
+                featureVector.push(normalizeFeature(sumMean, 0, 50));
+                featureVector.push(normalizeFeature(sumStd, 0, 20));
+                
+                var spanValues = [];
+                for (var i = 0; i < recent.length; i++) {
+                    var numStr = recent[i].number || recent[i].num || '';
+                    if (numStr.length >= 5) {
+                        var digits = numStr.split('').map(Number);
+                        spanValues.push(Math.max.apply(null, digits) - Math.min.apply(null, digits));
+                    }
+                }
+                
+                if (spanValues.length > 0) {
+                    var spanMean = spanValues.reduce(function(a, b) { return a + b; }, 0) / spanValues.length;
+                    featureVector.push(normalizeFeature(spanMean, 0, 10));
+                } else {
+                    featureVector.push(0.5);
+                }
+                
+                var oddRatios = [];
+                var bigRatios = [];
+                for (var i = 0; i < recent.length; i++) {
+                    var numStr = recent[i].number || recent[i].num || '';
+                    if (numStr.length >= 5) {
+                        var digits = numStr.split('').map(Number);
+                        oddRatios.push(digits.filter(function(d) { return d % 2 === 1; }).length / 5);
+                        bigRatios.push(digits.filter(function(d) { return d >= 5; }).length / 5);
+                    }
+                }
+                
+                if (oddRatios.length > 0) {
+                    var oddMean = oddRatios.reduce(function(a, b) { return a + b; }, 0) / oddRatios.length;
+                    var bigMean = bigRatios.reduce(function(a, b) { return a + b; }, 0) / bigRatios.length;
+                    featureVector.push(oddMean);
+                    featureVector.push(bigMean);
+                } else {
+                    featureVector.push(0.5);
+                    featureVector.push(0.5);
+                }
+            } else {
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+            }
+            
+            var sumZones = [0, 0, 0, 0, 0];
+            for (var i = 0; i < sumValues.length; i++) {
+                var s = sumValues[i];
+                if (s <= 10) sumZones[0]++;
+                else if (s <= 15) sumZones[1]++;
+                else if (s <= 20) sumZones[2]++;
+                else if (s <= 25) sumZones[3]++;
+                else sumZones[4]++;
+            }
+            var totalSums = sumValues.length || 1;
+            for (var j = 0; j < 5; j++) {
+                featureVector.push((sumZones[j] / totalSums));
+            }
+            
+            var missingAnalysis = calculateMissingValues(drawData);
+            for (var j = 0; j < 10; j++) {
+                featureVector.push(normalizeFeature(missingAnalysis[j] || 0, 0, 50));
+            }
+            
+            if (mid3Values.length >= 5) {
+                var ema5Mid = calculateEMA(mid3Values, 5);
+                var ema10Mid = calculateEMA(mid3Values, 10);
+                var slopeMid = calculateSlope(mid3Values, 10);
+                featureVector.push(normalizeFeature(ema5Mid[ema5Mid.length - 1] || 0, 0, 999));
+                featureVector.push(normalizeFeature(ema10Mid[ema10Mid.length - 1] || 0, 0, 999));
+                featureVector.push(normalizeFeature(slopeMid, -50, 50));
+            } else {
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+            }
+            
+            if (front3Values.length >= 5) {
+                var ema5Front = calculateEMA(front3Values, 5);
+                var ema10Front = calculateEMA(front3Values, 10);
+                var slopeFront = calculateSlope(front3Values, 10);
+                featureVector.push(normalizeFeature(ema5Front[ema5Front.length - 1] || 0, 0, 999));
+                featureVector.push(normalizeFeature(ema10Front[ema10Front.length - 1] || 0, 0, 999));
+                featureVector.push(normalizeFeature(slopeFront, -50, 50));
+            } else {
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+                featureVector.push(0.5);
+            }
+            
+            var periodInfo = drawData[drawData.length - 1];
+            var periodStr = periodInfo.period || '';
+            var month = 1;
+            var weekday = 1;
+            
+            if (periodStr.length >= 6) {
+                var year = parseInt(periodStr.substring(0, 4));
+                var mon = parseInt(periodStr.substring(4, 6));
+                if (!isNaN(year) && !isNaN(mon)) {
+                    var date = new Date(year, mon - 1, 1);
+                    weekday = date.getDay();
+                    month = mon;
+                }
+            }
+            
+            featureVector.push(normalizeFeature(weekday, 0, 7));
+            featureVector.push(normalizeFeature(month, 1, 12));
+            
+            return featureVector;
         }
         
         function arraysEqual(a, b) {
