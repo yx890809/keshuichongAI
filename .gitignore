@@ -1,0 +1,26 @@
+# 备份文件
+index_backup_*.html
+index_v*_backup.html
+server_v*_backup.js
+server_backup_*.js
+
+# 大数据文件（体积过大，不适合git）
+lottery_data.json
+lottery_data.json.bak
+lottery_data_backup.json
+groups.json
+hit_stats.json
+groups/
+data/
+
+# worker备份
+worker/*_backup.js
+
+# Node相关
+node_modules/
+node.exe
+
+# 临时文件
+*.log
+*.tmp
+*.bak
