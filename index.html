@@ -9102,6 +9102,10 @@
                     diversity: 10,
                     paritySize: 10
                 };
+                round1WeightMode = 'balanced';
+                round2WeightMode = 'balanced';
+                round1Weights = JSON.parse(JSON.stringify(scoreWeights));
+                round2Weights = JSON.parse(JSON.stringify(scoreWeights));
             } else if (preset === 'core') {
                 scoreWeights = {
                     modelVotes: 25,
@@ -9115,6 +9119,10 @@
                     diversity: 5,
                     paritySize: 5
                 };
+                round1WeightMode = 'core';
+                round2WeightMode = 'core';
+                round1Weights = JSON.parse(JSON.stringify(scoreWeights));
+                round2Weights = JSON.parse(JSON.stringify(scoreWeights));
             } else if (preset === 'dynamic') {
                 applyDynamicWeights();
                 return;
@@ -9122,6 +9130,10 @@
                 for (var key in customWeights) {
                     scoreWeights[key] = customWeights[key];
                 }
+                round1WeightMode = 'custom';
+                round2WeightMode = 'custom';
+                round1Weights = JSON.parse(JSON.stringify(customWeights));
+                round2Weights = JSON.parse(JSON.stringify(customWeights));
             }
             
             updateWeightInputs();
@@ -9240,10 +9252,18 @@
             }
             
             scoreWeights = weights;
+            round1WeightMode = 'dynamic';
+            round2WeightMode = 'dynamic';
+            round1Weights = JSON.parse(JSON.stringify(weights));
+            round2Weights = JSON.parse(JSON.stringify(weights));
             
             updateWeightInputs();
             updateCurrentWeightMode();
             saveWeights();
+            
+            if (window.splitResults && window.splitResults.length > 0) {
+                analyzeSplitResults(window.splitResults);
+            }
             
             console.log('[Dynamic] 动态权重已应用');
         }

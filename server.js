@@ -44,7 +44,8 @@ let dataStore = {
     analysisHistory: [],
     trainingStatus: { completed: false, lastPeriod: '' },
     dataLake: [],
-    splitConfig: null
+    splitConfig: null,
+    indicatorHitStats: []
 };
 
 function transformDrawData(drawData) {
@@ -321,6 +322,34 @@ app.post('/api/import', (req, res) => {
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', dataFile: DATA_FILE, drawDataCount: dataStore.drawData.length });
+});
+
+app.get('/api/indicator-hit-stats', (req, res) => {
+    res.json({ hitStats: dataStore.indicatorHitStats || [] });
+});
+
+app.post('/api/indicator-hit-stats/add', (req, res) => {
+    const records = req.body;
+    if (!Array.isArray(records)) {
+        res.status(400).json({ success: false, error: '数据格式错误' });
+        return;
+    }
+
+    if (!dataStore.indicatorHitStats) {
+        dataStore.indicatorHitStats = [];
+    }
+
+    records.forEach(record => {
+        dataStore.indicatorHitStats.push(record);
+    });
+
+    const MAX_RECORDS = 1000;
+    if (dataStore.indicatorHitStats.length > MAX_RECORDS) {
+        dataStore.indicatorHitStats = dataStore.indicatorHitStats.slice(-MAX_RECORDS);
+    }
+
+    saveData();
+    res.json({ success: true, total: dataStore.indicatorHitStats.length });
 });
 
 app.get('/api/proxy', (req, res) => {
