@@ -8351,7 +8351,7 @@
         var round1Weights = JSON.parse(JSON.stringify(scoreWeights));
         var round2Weights = JSON.parse(JSON.stringify(scoreWeights));
         var round1WeightMode = 'core';
-        var round2WeightMode = 'dynamic';
+        var round2WeightMode = 'core';
 
         // ========== 指标命中率统计 ==========
         var indicatorHitStats = [];
@@ -11156,7 +11156,18 @@
             
             totalScore = Math.max(0, totalScore - penalty);
 
-            console.log('[AI SCORE] Group:', chartIdx, '- 冷热:', coldHotBalance.toFixed(1), '回归:', regressionExpectation.toFixed(1), '连错:', maxLossStreak, '→', maxLossStreakScore.toFixed(1), '趋势:', trendScore.toFixed(1), 'K线形态:', klinePatternScore.toFixed(1), '模式:', patternMatchScore.toFixed(1), '位置转移:', positionTransitionScore.toFixed(1), '多样性:', diversityScore.toFixed(1), '奇偶大小比:', paritySizeScore.toFixed(1), '多模型:', modelVotes.toFixed(1), 'TOTAL:', totalScore.toFixed(1), 'Penalty:', penalty.toFixed(1));
+            console.log('[AI SCORE] Group:', chartIdx, 'Round:', round);
+            console.log('[AI SCORE] ├─ 冷热平衡度:', coldHotBalance.toFixed(1), '×', (currentWeights.coldHot / normalizedTotalWeight).toFixed(3), '=', (coldHotBalance * (currentWeights.coldHot / normalizedTotalWeight)).toFixed(2));
+            console.log('[AI SCORE] ├─ 回归期望值:', regressionExpectation.toFixed(1), '×', (currentWeights.regression / normalizedTotalWeight).toFixed(3), '=', (regressionExpectation * (currentWeights.regression / normalizedTotalWeight)).toFixed(2));
+            console.log('[AI SCORE] ├─ 最大连错:', maxLossStreakScore.toFixed(1), '×', (currentWeights.maxLoss / normalizedTotalWeight).toFixed(3), '=', (maxLossStreakScore * (currentWeights.maxLoss / normalizedTotalWeight)).toFixed(2));
+            console.log('[AI SCORE] ├─ 趋势评分:', trendScore.toFixed(1), '×', (currentWeights.trend / normalizedTotalWeight).toFixed(3), '=', (trendScore * (currentWeights.trend / normalizedTotalWeight)).toFixed(2));
+            console.log('[AI SCORE] ├─ K线形态:', klinePatternScore.toFixed(1), '×', (currentWeights.klinePattern / normalizedTotalWeight).toFixed(3), '=', (klinePatternScore * (currentWeights.klinePattern / normalizedTotalWeight)).toFixed(2));
+            console.log('[AI SCORE] ├─ 模式评分:', patternMatchScore.toFixed(1), '×', (currentWeights.pattern / normalizedTotalWeight).toFixed(3), '=', (patternMatchScore * (currentWeights.pattern / normalizedTotalWeight)).toFixed(2));
+            console.log('[AI SCORE] ├─ 位置转移:', positionTransitionScore.toFixed(1), '×', (currentWeights.positionTransition / normalizedTotalWeight).toFixed(3), '=', (positionTransitionScore * (currentWeights.positionTransition / normalizedTotalWeight)).toFixed(2));
+            console.log('[AI SCORE] ├─ 平均遗漏值:', diversityScore.toFixed(1), '×', (currentWeights.diversity / normalizedTotalWeight).toFixed(3), '=', (diversityScore * (currentWeights.diversity / normalizedTotalWeight)).toFixed(2));
+            console.log('[AI SCORE] ├─ 奇偶大小比:', paritySizeScore.toFixed(1), '×', (currentWeights.paritySize / normalizedTotalWeight).toFixed(3), '=', (paritySizeScore * (currentWeights.paritySize / normalizedTotalWeight)).toFixed(2));
+            console.log('[AI SCORE] └─ 多模型投票:', modelVotes.toFixed(1), '×', (currentWeights.modelVotes / normalizedTotalWeight).toFixed(3), '=', (modelVotes * (currentWeights.modelVotes / normalizedTotalWeight)).toFixed(2));
+            console.log('[AI SCORE] 总分:', totalScore.toFixed(1), '惩罚:', penalty.toFixed(1), '最终:', (totalScore - penalty).toFixed(1));
             
             var reasons = [];
             if (regressionExpectation >= 80) reasons.push('回归期望值极高');
