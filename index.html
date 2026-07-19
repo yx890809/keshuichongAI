@@ -41,7 +41,8 @@
         .charts-grid { display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-start; align-content:flex-start; }
         .chart-box { background:#21262d; border-radius:8px; padding:10px; border:1px solid #30363d; cursor:pointer; width:220px; transition:all 0.2s; }
         .chart-box:hover { border-color:#58a6ff; transform:scale(1.02); }
-        .chart-title { font-size:12px; font-weight:bold; margin-bottom:5px; color:#fff; }
+        .chart-title { font-size:12px; font-weight:bold; margin-bottom:5px; color:#fff; position:relative; }
+        .chart-rank-badge { position:absolute; top:-2px; right:-2px; font-size:10px; font-weight:bold; color:#fff; padding:1px 6px; border-radius:6px; background:#f0883e; }
         .chart-hit { font-size:10px; color:#58a6ff; margin-bottom:5px; }
         .chart-canvas { width:200px; height:130px; background:#0d1117; border-radius:4px; display:block; }
         .status-bar { background:#161b22; padding:8px; text-align:center; font-size:11px; color:#8b949e; border-top:1px solid #30363d; }
@@ -4207,9 +4208,9 @@
                 var round1Charts = allCharts.filter(function(c) { return c.round === 1; });
                 var round2Charts = allCharts.filter(function(c) { return c.round === 2; });
                 
-                function calcChartScore(chart, idx) {
+                function calcChartScore(chart, round, chartIdx) {
                     try {
-                        var scores = calculateGroupScores(chart.group, idx);
+                        var scores = calculateGroupScores(chart.group, round, chartIdx);
                         return scores.totalScore || 0;
                     } catch(e) {
                         return 0;
@@ -4217,7 +4218,7 @@
                 }
                 
                 round1Charts.forEach(function(c, idx) {
-                    c.score = calcChartScore(c, idx);
+                    c.score = calcChartScore(c, 1, idx);
                 });
                 round1Charts.sort(function(a, b) { return b.score - a.score; });
                 if (round1Charts.length > 0) round1Charts[0].rank = 1;
@@ -4225,9 +4226,8 @@
                 if (round1Charts.length > 2) round1Charts[2].rank = 3;
                 if (round1Charts.length > 3) round1Charts[3].rank = 4;
                 
-                var round1Offset = round1Charts.length;
                 round2Charts.forEach(function(c, idx) {
-                    c.score = calcChartScore(c, round1Offset + idx);
+                    c.score = calcChartScore(c, 2, round1Charts.length + idx);
                 });
                 round2Charts.sort(function(a, b) { return b.score - a.score; });
                 if (round2Charts.length > 0) round2Charts[0].rank = 1;
@@ -4252,14 +4252,17 @@
                 
                 var title = document.createElement('div');
                 title.className = 'chart-title';
+                title.textContent = chart.label;
                 
-                var rankBadge = '';
                 if (chart.rank && chart.rank <= 4) {
-                    var badges = ['', ' 🥇第一', ' 🥈第二', ' 🥉第三', ' 🏅第四'];
-                    rankBadge = badges[chart.rank] || '';
+                    var badgeColors = ['', '#f0883e', '#a371f7', '#58a6ff', '#3fb950'];
+                    var badgeTexts = ['', '第一', '第二', '第三', '第四'];
+                    var badge = document.createElement('div');
+                    badge.className = 'chart-rank-badge';
+                    badge.textContent = badgeTexts[chart.rank];
+                    badge.style.background = badgeColors[chart.rank];
+                    title.appendChild(badge);
                 }
-                
-                title.textContent = chart.label + rankBadge;
                 
                 var hit = document.createElement('div');
                 hit.className = 'chart-hit';
@@ -5379,7 +5382,7 @@
                             console.log('[Backend] 滚动保留最新 ' + maxDraws + ' 期，删除最旧的 ' + removedCount + ' 期');
                         }
                         
-                        saveData();
+                        saveDrawData();
                         console.log('[Backend] 开奖数据已更新');
                     }
                 }
@@ -5444,6 +5447,16 @@
                     console.log('[Backend] 加载分割模板');
                     localStorage.setItem('splitConfig', JSON.stringify(splitConfigBackend));
                 }
+                
+                fetch(getBackendUrl() + '/indicator-hit-stats').then(function(res) { return res.json(); }).then(function(data) {
+                    if (data.hitStats && Array.isArray(data.hitStats)) {
+                        indicatorHitStats = data.hitStats;
+                        console.log('[Backend] 重新加载命中率统计:', indicatorHitStats.length, '条');
+                        updateIndicatorHitRateDisplay();
+                    }
+                }).catch(function(e) {
+                    console.warn('[Backend] 加载命中率统计失败:', e.message);
+                });
                 
                 return true;
             }).catch(function(err) {
@@ -8347,6 +8360,11 @@
         function initIndicatorHitStats() {
             var CURRENT_VERSION = 'v2';
             
+            var hitRateEl = document.getElementById('indicatorHitRates');
+            if (hitRateEl) {
+                hitRateEl.innerHTML = '<div style="text-align:center;color:#f0883e;font-size:10px;padding:15px;">⏳ 正在加载指标命中率...</div>';
+            }
+            
             try {
                 var savedVersion = localStorage.getItem('hitStatsVersion');
                 if (savedVersion !== CURRENT_VERSION) {
@@ -8368,7 +8386,7 @@
                 console.error('[HitStats] 从localStorage恢复失败:', e);
             }
             
-            var hitStatsUrl = window.location.protocol + '//' + window.location.host + '/api/indicator-hit-stats?version=' + CURRENT_VERSION;
+            var hitStatsUrl = getBackendUrl() + '/indicator-hit-stats?version=' + CURRENT_VERSION;
             console.log('[HitStats] Loading from:', hitStatsUrl);
             fetch(hitStatsUrl, { timeout: 30000 })
                 .then(function(res) { 
@@ -8484,7 +8502,7 @@
                 };
             });
             
-            fetch('/api/indicator-hit-stats/add', {
+            fetch(getBackendUrl() + '/indicator-hit-stats/add', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(saveRecords)
@@ -8669,8 +8687,8 @@
             
             console.log('[HitStats] 新增统计数:', results.length, '总统计数:', indicatorHitStats.length);
             
-            fetch('/api/indicator-hit-stats/add', {
-                method: 'POST',
+            fetch(getBackendUrl() + '/indicator-hit-stats/add', {
+            method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(results)
             })
@@ -8973,14 +8991,20 @@
                 console.warn('[AutoSave] Failed to auto-save:', e.message);
             }
             
-            if (round1WeightMode === 'custom') {
-                round1Weights[key] = numValue;
-            }
-            if (round2WeightMode === 'custom') {
-                round2Weights[key] = numValue;
-            }
+            currentWeightMode = 'custom';
+            round1WeightMode = 'custom';
+            round2WeightMode = 'custom';
+            
+            round1Weights[key] = numValue;
+            round2Weights[key] = numValue;
+            
             updateWeightTotal();
             updateCurrentWeightMode();
+            console.log('[Weight] Updated:', key, '=', numValue, 'round1Weights:', round1Weights[key], 'round2Weights:', round2Weights[key]);
+            
+            if (window.splitResults && window.splitResults.length > 0) {
+                analyzeSplitResults(window.splitResults);
+            }
         }
 
         function updateWeightDisplay(key, value) {
@@ -9098,15 +9122,15 @@
                 for (var key in customWeights) {
                     scoreWeights[key] = customWeights[key];
                 }
-                round1WeightMode = 'custom';
-                round2WeightMode = 'custom';
-                round1Weights = JSON.parse(JSON.stringify(customWeights));
-                round2Weights = JSON.parse(JSON.stringify(customWeights));
             }
             
             updateWeightInputs();
             updateCurrentWeightMode();
             saveWeights();
+            
+            if (window.splitResults && window.splitResults.length > 0) {
+                analyzeSplitResults(window.splitResults);
+            }
         }
 
         function setRoundWeightMode(round, mode) {
@@ -9145,7 +9169,7 @@
             saveWeights();
             
             if (window.splitResults && window.splitResults.length > 0) {
-                renderRecommendations({ recommendations: lastAnalysisResults });
+                analyzeSplitResults(window.splitResults);
             }
         }
 
@@ -10904,7 +10928,7 @@
                     continue;
                 }
                 
-                var scores = calculateGroupScores(group, i);
+                var scores = calculateGroupScores(group, roundInfo.round, i);
                 
                 var antiPatternMatch = calculateAntiPatternMatch(group);
                 var adjustedPatternScore = Math.max(0, scores.patternMatchScore - antiPatternMatch * 0.3);
@@ -11000,8 +11024,8 @@
             });
         }
         
-        function calculateGroupScores(group, chartIdx) {
-            console.log('[AI] calculateGroupScores called, group.length:', group ? group.length : 0, 'chartIdx:', chartIdx);
+        function calculateGroupScores(group, round, chartIdx) {
+            console.log('[AI] calculateGroupScores called, group.length:', group ? group.length : 0, 'round:', round, 'chartIdx:', chartIdx);
             
             if (!group || group.length === 0) {
                 console.log('[AI] Invalid group, returning default score');
@@ -11033,15 +11057,15 @@
             
             var modelVotes = runEnsembleModels(group, chartIdx);
             
-            // 根据chartIdx判断是第一次分割还是第二次分割
+            // 根据round判断使用哪个权重
             var currentWeights = scoreWeights;
-            if (chartIdx !== undefined) {
-                if (chartIdx <= 3) {
-                    currentWeights = round1Weights;
-                } else {
-                    currentWeights = round2Weights;
-                }
+            if (round === 1) {
+                currentWeights = round1Weights;
+            } else if (round === 2) {
+                currentWeights = round2Weights;
             }
+            
+            console.log('[AI] Round:', round, 'Weights:', JSON.stringify(currentWeights));
             
             var maxLossStreakScore = Math.max(0, Math.min(100, Math.round(80 - 15 * Math.log(maxLossStreak + 1))));
             
@@ -11051,7 +11075,9 @@
                               currentWeights.paritySize;
 
             var normalizedTotalWeight = totalWeight > 0 ? totalWeight : 100;
-
+            
+            console.log('[AI] totalWeight:', totalWeight, 'normalizedTotalWeight:', normalizedTotalWeight);
+            
             var totalScore =
                 coldHotBalance * (currentWeights.coldHot / normalizedTotalWeight) +
                 regressionExpectation * (currentWeights.regression / normalizedTotalWeight) +
@@ -11063,6 +11089,9 @@
                 diversityScore * (currentWeights.diversity / normalizedTotalWeight) +
                 paritySizeScore * (currentWeights.paritySize / normalizedTotalWeight) +
                 modelVotes * (currentWeights.modelVotes / normalizedTotalWeight);
+            
+            console.log('[AI] modelVotes:', modelVotes, 'weight:', currentWeights.modelVotes, 'contribution:', modelVotes * (currentWeights.modelVotes / normalizedTotalWeight));
+            console.log('[AI] totalScore:', totalScore);
 
             totalScore = Math.min(100, Math.max(0, totalScore));
 
