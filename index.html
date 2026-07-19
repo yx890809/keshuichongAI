@@ -8995,15 +8995,22 @@
             round1WeightMode = 'custom';
             round2WeightMode = 'custom';
             
-            round1Weights[key] = numValue;
-            round2Weights[key] = numValue;
+            round1Weights = JSON.parse(JSON.stringify(customWeights));
+            round2Weights = JSON.parse(JSON.stringify(customWeights));
             
             updateWeightTotal();
             updateCurrentWeightMode();
-            console.log('[Weight] Updated:', key, '=', numValue, 'round1Weights:', round1Weights[key], 'round2Weights:', round2Weights[key]);
+            console.log('[Weight] Updated:', key, '=', numValue);
+            console.log('[Weight DEBUG] scoreWeights:', JSON.stringify(scoreWeights));
+            console.log('[Weight DEBUG] customWeights:', JSON.stringify(customWeights));
+            console.log('[Weight DEBUG] round1Weights:', JSON.stringify(round1Weights));
+            console.log('[Weight DEBUG] round2Weights:', JSON.stringify(round2Weights));
             
             if (window.splitResults && window.splitResults.length > 0) {
+                console.log('[Weight] Triggering re-analysis, splitResults.length:', window.splitResults.length);
                 analyzeSplitResults(window.splitResults);
+            } else {
+                console.log('[Weight] No splitResults available, cannot re-analyze');
             }
         }
 
@@ -11047,6 +11054,12 @@
         function calculateGroupScores(group, round, chartIdx) {
             console.log('[AI] calculateGroupScores called, group.length:', group ? group.length : 0, 'round:', round, 'chartIdx:', chartIdx);
             
+            console.log('[AI DEBUG] scoreWeights:', JSON.stringify(scoreWeights));
+            console.log('[AI DEBUG] round1Weights:', JSON.stringify(round1Weights));
+            console.log('[AI DEBUG] round2Weights:', JSON.stringify(round2Weights));
+            console.log('[AI DEBUG] round1WeightMode:', round1WeightMode);
+            console.log('[AI DEBUG] round2WeightMode:', round2WeightMode);
+            
             if (!group || group.length === 0) {
                 console.log('[AI] Invalid group, returning default score');
                 return { hitRate: 0, streakRate: 0, trendScore: 0, klinePatternScore: 0, patternMatchScore: 0, maxLossStreak: 0, totalScore: 0, reason: '无效号码组' };
@@ -11117,23 +11130,27 @@
 
             var penalty = 0;
             
-            // 惩罚1：连错超过平均遗漏值2倍
-            var avgMissStreak = 0;
-            if (hitData.total > 0 && hitData.hits > 0) {
-                avgMissStreak = hitData.total / hitData.hits;
-            }
-            if (maxLossStreak > avgMissStreak * 2 && avgMissStreak > 0) {
-                penalty += Math.min(15, (maxLossStreak - avgMissStreak * 2) * 3);
-            }
-            
-            // 惩罚2：命中率低于理论值50%
-            var theoryHitRatePercent = 27.1;
-            if (hitRate < theoryHitRatePercent * 0.5) {
-                penalty += Math.min(20, (theoryHitRatePercent * 0.5 - hitRate) * 2);
+            // 惩罚1：连错超过平均遗漏值2倍（仅当maxLoss权重>0时应用）
+            if (currentWeights.maxLoss > 0) {
+                var avgMissStreak = 0;
+                if (hitData.total > 0 && hitData.hits > 0) {
+                    avgMissStreak = hitData.total / hitData.hits;
+                }
+                if (maxLossStreak > avgMissStreak * 2 && avgMissStreak > 0) {
+                    penalty += Math.min(15, (maxLossStreak - avgMissStreak * 2) * 3);
+                }
             }
             
-            // 惩罚3：K线形态评分极低（历史统计命中率<20%）
-            if (klinePatternScore < 20) {
+            // 惩罚2：命中率低于理论值50%（仅当pattern或coldHot权重>0时应用）
+            if (currentWeights.pattern > 0 || currentWeights.coldHot > 0) {
+                var theoryHitRatePercent = 27.1;
+                if (hitRate < theoryHitRatePercent * 0.5) {
+                    penalty += Math.min(20, (theoryHitRatePercent * 0.5 - hitRate) * 2);
+                }
+            }
+            
+            // 惩罚3：K线形态评分极低（仅当klinePattern权重>0时应用）
+            if (currentWeights.klinePattern > 0 && klinePatternScore < 20) {
                 penalty += 10;
             }
             
