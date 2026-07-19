@@ -9098,6 +9098,10 @@
                 for (var key in customWeights) {
                     scoreWeights[key] = customWeights[key];
                 }
+                round1WeightMode = 'custom';
+                round2WeightMode = 'custom';
+                round1Weights = JSON.parse(JSON.stringify(customWeights));
+                round2Weights = JSON.parse(JSON.stringify(customWeights));
             }
             
             updateWeightInputs();
